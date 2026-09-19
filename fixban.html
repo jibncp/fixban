@@ -1,0 +1,4178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Gestión de Taller</title>
+<style>  :root, [data-theme="dark"]{
+    --bg:#12181c;
+    --panel:#1b2328;
+    --panel2:#222c32;
+    --line:#2e3a41;
+    --text:#e7edf0;
+    --muted:#8ea0a8;
+    --accent:#FF6A00;
+    --accent2:#00D9B5;
+    --danger:#FF3B5C;
+    --ok:#00E676;
+    --scroll-thumb:rgba(255,255,255,.10);
+    --scroll-thumb-hover:rgba(255,255,255,.28);
+    --scroll-thumb-active:rgba(255,255,255,.42);
+    --mono: 'Courier New', monospace;
+  }
+  [data-theme="light"]{
+    --bg:#f2f4f6;
+    --panel:#ffffff;
+    --panel2:#eef1f4;
+    --line:#dde2e7;
+    --text:#1a2226;
+    --muted:#5c6870;
+    --accent:#FF6A00;
+    --accent2:#00A896;
+    --danger:#E63950;
+    --ok:#00A651;
+    --scroll-thumb:rgba(0,0,0,.14);
+    --scroll-thumb-hover:rgba(0,0,0,.30);
+    --scroll-thumb-active:rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box;}
+
+  /* Barra de scroll minimalista y semitransparente */
+  *{
+    scrollbar-width:thin;
+    scrollbar-color:var(--scroll-thumb) transparent;
+  }
+  *::-webkit-scrollbar{width:10px;height:10px;}
+  *::-webkit-scrollbar-track{background:transparent;}
+  *::-webkit-scrollbar-corner{background:transparent;}
+  *::-webkit-scrollbar-thumb{
+    background-color:var(--scroll-thumb);
+    background-clip:padding-box;
+    border:3px solid transparent;
+    border-radius:20px;
+    transition:background-color .2s;
+  }
+  *::-webkit-scrollbar-thumb:hover{
+    background-color:var(--scroll-thumb-hover);
+    background-clip:padding-box;
+  }
+  *::-webkit-scrollbar-thumb:active{
+    background-color:var(--scroll-thumb-active);
+    background-clip:padding-box;
+  }
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  }
+  header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:16px 24px;border-bottom:1px solid var(--line);
+    background:var(--panel);
+    position:relative;z-index:50;
+  }
+  .header-left{display:flex;align-items:center;gap:14px;}
+  .header-right{display:flex;align-items:center;gap:8px;}
+  .header-usuario{font-size:13px;color:var(--muted);margin-right:4px;}
+
+  /* Encabezado flotante que aparece al desplazarse hacia abajo */
+  .scroll-header{
+    position:fixed;top:0;left:0;right:0;z-index:150;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--panel);border-bottom:1px solid var(--line);
+    padding:14px 56px;
+    transform:translateY(-100%);opacity:0;
+    transition:transform .25s ease, opacity .25s ease;
+  }
+  .scroll-header.visible{transform:translateY(0);opacity:1;}
+  .scroll-header-back{
+    position:absolute;left:12px;top:50%;transform:translateY(-50%);
+    background:none;border:none;color:var(--text);cursor:pointer;
+    width:38px;height:38px;display:flex;align-items:center;justify-content:center;
+    border-radius:10px;-webkit-tap-highlight-color:transparent;
+  }
+  .scroll-header-back svg{width:22px;height:22px;stroke:currentColor;fill:none;}
+  .scroll-header-back:hover{background:var(--panel2);}
+  .scroll-header-back:active{transform:translateY(-50%) scale(.9);}
+  .scroll-header-logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;color:var(--accent);max-width:100%;}
+  .scroll-header-logo img{max-height:30px;max-width:90px;object-fit:contain;}
+  .scroll-header-logo span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .menu-btn{
+    background:var(--panel2);border:1px solid var(--line);color:var(--text);
+    width:38px;height:38px;border-radius:8px;font-size:18px;cursor:pointer;
+    flex-shrink:0;
+  }
+  .menu-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+  /* Login */
+  #login-screen{
+    position:fixed;inset:0;background:var(--bg);
+    display:flex;align-items:center;justify-content:center;
+    z-index:1000;padding:20px;
+  }
+  .login-card{
+    width:100%;max-width:360px;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;padding:28px;text-align:center;
+  }
+  .login-card h1{font-size:16px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin:0 0 4px;}
+  .login-card label{text-align:left;}
+  .login-card button.primary{margin-top:18px;}
+  .login-error{color:var(--danger);font-size:12px;min-height:16px;margin-top:8px;text-align:left;}
+  #login-logo img{max-width:120px;max-height:90px;object-fit:contain;margin:0 auto 12px;display:block;}
+  header h1{
+    font-size:17px;letter-spacing:.06em;text-transform:uppercase;
+    margin:0;font-weight:700;color:var(--accent);
+  }
+  header .sub{color:var(--muted);font-size:12px;margin-top:2px;}
+
+  /* Menú lateral izquierdo (se oculta automáticamente al elegir una opción) */
+  .menu-bar{
+    position:fixed;top:0;left:0;bottom:0;width:250px;z-index:200;
+    background:var(--panel);border-right:1px solid var(--line);
+    display:flex;flex-direction:column;
+    transform:translateX(-100%);
+    transition:transform .25s ease;
+    overflow-y:auto;-webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+  }
+  .menu-bar.open{transform:translateX(0);box-shadow:12px 0 30px rgba(0,0,0,.4);}
+  .menu-bar-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:16px 18px;border-bottom:1px solid var(--line);
+  }
+  .menu-bar-header span{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);font-weight:700;}
+  .menu-close{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1;padding:4px;}
+  .menu-close:hover{color:var(--text);}
+  .menu-item{
+    display:flex;align-items:center;gap:14px;flex-shrink:0;
+    background:none;border:none;border-bottom:1px solid var(--line);
+    color:var(--text);padding:18px 20px;font-size:22px;font-weight:600;
+    cursor:pointer;text-align:left;width:100%;
+  }
+  .menu-item span{font-size:17px;}
+  .menu-item:last-child{border-bottom:none;padding-bottom:calc(18px + env(safe-area-inset-bottom, 0px));}
+  .menu-item:hover{background:var(--panel2);color:var(--accent);}
+  .menu-item.active{background:var(--panel2);color:var(--accent);border-left:3px solid var(--accent);padding-left:17px;}
+  .menu-overlay{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:190;
+  }
+  .menu-overlay.open{display:block;}
+
+  /* Vistas (home vs secciones) */
+  .vista{display:none;}
+  .vista.active{display:block;}
+
+  /* Sub-navegación de Ajustes con iconos */
+  .aj-vista{display:none;}
+  .aj-vista.active{display:block;}
+  .aj-back{margin-bottom:18px;}
+
+  /* Pantalla de inicio con iconos grandes */
+  #vista-home{padding:32px 24px;max-width:900px;margin:0 auto;}
+  .home-grid{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:20px;
+  }
+  .home-tile{
+    background:none;border:none;border-radius:16px;
+    padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:12px;
+    cursor:pointer;color:var(--text);transition:background .15s, transform .1s;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .home-tile:hover{background:var(--panel2);}
+  .home-tile:active{transform:scale(.94);background:var(--panel2);}
+  .home-icon{
+    width:84px;height:84px;border-radius:24px;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    color:#fff;
+  }
+  .home-icon svg{width:36px;height:36px;stroke:currentColor;fill:none;}
+  .home-label{font-size:15px;font-weight:700;text-align:center;line-height:1.4;}
+
+  /* Colores distintos de fondo para cada ícono, en ciclo */
+  .home-tile:nth-child(8n+1) .home-icon{background:#FF6A00;}
+  .home-tile:nth-child(8n+2) .home-icon{background:#00D9B5;}
+  .home-tile:nth-child(8n+3) .home-icon{background:#2E86FF;}
+  .home-tile:nth-child(8n+4) .home-icon{background:#FF3B5C;}
+  .home-tile:nth-child(8n+5) .home-icon{background:#A855F7;}
+  .home-tile:nth-child(8n+6) .home-icon{background:#00C853;}
+  .home-tile:nth-child(8n+7) .home-icon{background:#FFC400;}
+  .home-tile:nth-child(8n+8) .home-icon{background:#FF8A00;}
+
+  /* Íconos del menú lateral, mismo estilo circular monocromo */
+  .menu-item .m-icon{
+    width:40px;height:40px;border-radius:12px;flex-shrink:0;
+    display:inline-flex;align-items:center;justify-content:center;color:#fff;
+  }
+  .menu-item .m-icon svg{width:20px;height:20px;stroke:currentColor;fill:none;}
+  .menu-item:nth-child(9n+1) .m-icon{background:#FF6A00;}
+  .menu-item:nth-child(9n+2) .m-icon{background:#00D9B5;}
+  .menu-item:nth-child(9n+3) .m-icon{background:#2E86FF;}
+  .menu-item:nth-child(9n+4) .m-icon{background:#FF3B5C;}
+  .menu-item:nth-child(9n+5) .m-icon{background:#A855F7;}
+  .menu-item:nth-child(9n+6) .m-icon{background:#00C853;}
+  .menu-item:nth-child(9n+7) .m-icon{background:#FFC400;}
+  .menu-item:nth-child(9n+8) .m-icon{background:#FF8A00;}
+  .menu-item:nth-child(9n+9) .m-icon{background:#6C7A89;}
+  main{padding:24px;max-width:1200px;margin:0 auto;}
+  .tab-content{display:none;}
+  .tab-content.active{display:block;}
+  .grid{display:grid;grid-template-columns:1.1fr 1.4fr;gap:20px;}
+  @media(max-width:900px){.grid{grid-template-columns:1fr;}}
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:18px;
+  }
+  .card h2{margin:0 0 14px;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent2);}
+  .card-header-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+
+  /* Inventario */
+  .inv-form{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:14px;}
+  .inv-resumen{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;}
+  .inv-resumen-item{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px 8px;text-align:center;}
+  .inv-resumen-valor{font-size:18px;font-weight:800;color:var(--accent);}
+  .inv-resumen-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;}
+  .linea-resumen{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:9px 0;border-bottom:1px solid var(--line);font-size:13px;
+  }
+  .linea-resumen:last-child{border-bottom:none;}
+  @media(max-width:480px){.inv-resumen{grid-template-columns:1fr;}}
+
+  /* Caja registradora */
+  .caja-estado-badge{
+    display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;
+    margin-bottom:14px;
+  }
+  .caja-estado-badge.abierta{background:#0d3320;color:var(--ok);}
+  .caja-estado-badge.cerrada{background:#2a2a2a;color:var(--muted);}
+  .caja-total-esperado{
+    text-align:center;padding:18px;background:var(--panel2);border-radius:12px;margin:14px 0;
+  }
+  .caja-total-esperado .valor{font-size:26px;font-weight:800;color:var(--accent);}
+  .caja-total-esperado .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:4px;}
+  .caja-botones{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;}
+  @media(max-width:480px){.caja-botones{grid-template-columns:1fr;}}
+
+  label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px;}
+  input,select,textarea{
+    width:100%;background:var(--panel2);border:1px solid var(--line);
+    color:var(--text);padding:9px 10px;border-radius:6px;font-size:14px;
+    font-family:inherit;
+  }
+  textarea{resize:vertical;min-height:50px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  button.primary{
+    margin-top:16px;width:100%;background:var(--accent);color:#1a1305;border:none;
+    padding:11px;border-radius:6px;font-weight:700;font-size:14px;cursor:pointer;
+  }
+  button.primary:hover{filter:brightness(1.08);}
+  button.ghost{
+    background:none;border:1px solid var(--line);color:var(--text);
+    padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;
+  }
+  button.ghost:hover{border-color:var(--accent2);color:var(--accent2);}
+  button.small-danger{
+    background:none;border:1px solid var(--danger);color:var(--danger);
+    padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;
+  }
+  .print-select{
+    width:auto;background:var(--panel2);border:1px solid var(--line);color:var(--text);
+    padding:6px 8px;border-radius:6px;font-size:12px;cursor:pointer;
+  }
+  .icon-btn{
+    background:var(--panel2);border:none;color:var(--text);
+    width:38px;height:38px;border-radius:10px;font-size:17px;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;padding:0;
+    flex-shrink:0;-webkit-tap-highlight-color:transparent;transition:background .12s, transform .1s;
+  }
+  .icon-btn:hover{background:var(--line);}
+  .icon-btn:active{transform:scale(.92);}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{text-align:left;color:var(--muted);font-weight:600;padding:8px;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:.05em;}
+  td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top;}
+  tr:hover td{background:#1f292e;}
+  .badge{padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700;}
+  .badge.cotizacion{background:#2a2438;color:#b28cf0;}
+  .badge.pendiente{background:#3a2010;color:var(--accent);}
+  .badge.proceso{background:#0d3a34;color:var(--accent2);}
+  .badge.listo{background:#0d3320;color:var(--ok);}
+  .badge.entregado{background:#2a2a2a;color:var(--muted);}
+  .actions{display:flex;gap:6px;flex-wrap:wrap;}
+  .fila-acciones{display:flex;gap:4px;}
+
+  /* Descargar recursos */
+  .rec-item{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;
+    background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+    padding:12px 14px;margin-bottom:10px;
+  }
+  .rec-item-nombre{font-weight:700;font-size:14px;}
+  .rec-item-acciones{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+  .rec-file-btn{
+    display:inline-block;padding:6px 10px;border:1px solid var(--line);border-radius:6px;
+    cursor:pointer;font-size:12px;color:var(--text);
+  }
+  .rec-file-btn:hover{border-color:var(--accent2);color:var(--accent2);}
+  .empty{color:var(--muted);font-size:13px;padding:16px 0;text-align:center;}
+  .list-scroll{max-height:520px;overflow-y:auto;}
+
+  /* POS */
+  .prod-item{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:10px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;
+    background:var(--panel2);cursor:pointer;
+  }
+  .prod-item:hover{border-color:var(--accent2);}
+  .prod-item .name{font-weight:600;font-size:14px;}
+  .prod-item .price{color:var(--accent);font-weight:700;}
+  .cart-line{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);}
+  .cart-line .qty-ctrl{display:flex;align-items:center;gap:4px;}
+  .cart-line .qty-ctrl button{width:24px;height:24px;border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:4px;cursor:pointer;}
+  .item-line{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px;}
+  .item-line .concepto{flex:1;}
+  .item-line .precio{width:70px;text-align:right;font-weight:700;}
+  .cart-total{display:flex;justify-content:space-between;font-size:20px;font-weight:800;padding:14px 0;border-top:1px solid var(--line);margin-top:8px;color:var(--accent);}
+  .toolbar{display:flex;gap:8px;margin-bottom:10px;}
+  .toolbar select{width:auto;}
+  .doc-row{display:flex;gap:6px;}
+
+  /* Autocompletado de clientes */
+  .autocomplete-wrap{position:relative;}
+  .autocomplete-lista{
+    display:none;position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:50;
+    background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+    max-height:220px;overflow-y:auto;box-shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  .autocomplete-lista.visible{display:block;}
+  .autocomplete-item{padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--line);}
+  .autocomplete-item:last-child{border-bottom:none;}
+  .autocomplete-item:hover, .autocomplete-item.activo{background:var(--line);}
+  .autocomplete-item .ac-nombre{font-weight:700;font-size:13px;}
+  .autocomplete-item .ac-detalle{font-size:11px;color:var(--muted);margin-top:2px;}
+  .doc-row select{flex-shrink:0;}
+  .doc-row button{flex-shrink:0;background:var(--accent2);color:#06231f;border:none;border-radius:6px;padding:0 14px;font-size:12px;font-weight:700;cursor:pointer;}
+  .doc-row button:hover{filter:brightness(1.08);}
+  .doc-estado{font-size:12px;min-height:16px;margin-top:6px;}
+  .doc-estado.ok{color:var(--ok);}
+  .doc-estado.error{color:var(--danger);}
+  .doc-estado.loading{color:var(--muted);}
+
+  /* Descargar Recursos */
+  .recurso-item{
+    display:flex;justify-content:space-between;align-items:flex-start;gap:14px;
+    padding:14px 0;border-bottom:1px solid var(--line);flex-wrap:wrap;
+  }
+  .recurso-item:last-child{border-bottom:none;}
+  .recurso-nombre{font-weight:700;font-size:14px;}
+  .recurso-acciones{display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex-shrink:0;}
+  .recurso-acciones input[type=file]{display:none;}
+
+  /* Selector de iconos */
+  .icon-selector-fila{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:12px 0;border-bottom:1px solid var(--line);flex-wrap:wrap;
+  }
+  .icon-selector-fila:last-child{border-bottom:none;}
+  .icon-selector-fila-info{display:flex;align-items:center;gap:12px;}
+  .icon-selector-label{font-weight:700;font-size:13px;}
+  .icon-preview{cursor:default;}
+  .icon-preview:hover{border-color:var(--accent);}
+  .icon-selector-opciones{display:flex;gap:8px;flex-wrap:wrap;}
+  .icon-opcion{
+    width:44px;height:44px;border-radius:10px;border:2px solid var(--line);
+    background:var(--panel2);color:var(--text);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    -webkit-tap-highlight-color:transparent;transition:border-color .12s, background .12s;
+  }
+  .icon-opcion svg{width:20px;height:20px;stroke:currentColor;fill:none;}
+  .icon-opcion:hover{border-color:var(--accent2);}
+  .icon-opcion.activo{border-color:var(--accent);background:var(--accent);color:#fff;}
+
+  .color-row{display:flex;align-items:center;gap:12px;margin-top:4px;}
+  .color-row input[type=color]{width:52px;height:38px;padding:2px;cursor:pointer;flex-shrink:0;}
+  .color-hex{font-family:var(--mono);font-size:13px;color:var(--muted);text-transform:uppercase;}
+
+  /* Copia de seguridad / red */
+  .switch-row{display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer;margin-top:10px;}
+  .switch-row input[type=checkbox]{width:auto;accent-color:var(--accent);transform:scale(1.3);cursor:pointer;}
+  .permisos-grid{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
+  .permisos-grid label{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);margin:0;cursor:pointer;}
+  .permisos-grid input[type=checkbox]{width:auto;accent-color:var(--accent);transform:scale(1.25);cursor:pointer;flex-shrink:0;}
+  .gd-setup.oculto{display:none;}
+
+  /* Ventana de ayuda (modal) */
+  .modal-overlay{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);
+    z-index:2000;align-items:center;justify-content:center;padding:20px;
+  }
+  .modal-overlay.visible{display:flex;}
+  .modal-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    max-width:480px;width:100%;max-height:80vh;overflow-y:auto;
+    box-shadow:0 20px 60px rgba(0,0,0,.5);
+  }
+  .modal-header{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:16px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;
+    background:var(--panel);border-radius:12px 12px 0 0;
+  }
+  .modal-header h2{margin:0;font-size:14px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent2);}
+  .modal-cerrar{
+    background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;
+    width:28px;height:28px;border-radius:6px;line-height:1;
+  }
+  .modal-cerrar:hover{color:var(--text);background:var(--panel2);}
+  .modal-contenido{padding:18px 20px;font-size:13px;color:var(--text);line-height:1.7;}
+  .modal-contenido strong{color:var(--accent);}
+
+  /* Ticket preview / print */
+  /* Se posiciona fuera de la pantalla (no display:none) para que las librerías
+     de código de barras puedan medir y dibujar el SVG correctamente antes de imprimir */
+  #printArea{position:fixed;left:-99999px;top:0;}
+  .ticket{
+    font-family:var(--mono);color:#000;background:#fff;padding:6mm 4mm;
+    font-size:var(--ticket-font-size, 11px);line-height:1.35;
+  }
+  .ticket h3{margin:0 0 4px;font-size:13px;text-align:center;}
+  .ticket .center{text-align:center;}
+  .ticket hr{border:none;border-top:1px dashed #000;margin:6px 0;}
+  .ticket .line{display:flex;justify-content:space-between;}
+  .ticket .tot{font-weight:700;font-size:13px;}
+  .ticket .logo{max-width:100%;max-height:70px;display:block;margin:0 auto 6px;}
+
+  /* Hoja A4 */
+  .a4{
+    width:210mm;min-height:297mm;background:#fff;color:#1a1a1a;
+    padding:18mm 16mm;font-family:Arial,Helvetica,sans-serif;font-size:13px;
+    box-sizing:border-box;
+  }
+  .a4-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1a1a1a;padding-bottom:14px;margin-bottom:18px;}
+  .a4-empresa{display:flex;gap:14px;align-items:center;}
+  .a4-empresa img{max-width:70px;max-height:70px;object-fit:contain;}
+  .a4-empresa h1{font-size:19px;margin:0 0 4px;}
+  .a4-empresa div{font-size:12px;color:#444;line-height:1.5;}
+  .a4-folio{text-align:right;font-size:12px;color:#444;}
+  .a4-folio-label{text-transform:uppercase;letter-spacing:.06em;font-size:11px;color:#888;}
+  .a4-folio-id{font-size:20px;font-weight:800;color:#1a1a1a;margin:2px 0;}
+  .a4-section{margin-bottom:20px;}
+  .a4-label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#888;margin-bottom:6px;}
+  .a4-datos{width:100%;border-collapse:collapse;}
+  .a4-datos td{padding:8px 10px;border:1px solid #ddd;font-size:13px;}
+  .a4-box{border:1px solid #ddd;border-radius:6px;padding:14px;min-height:60px;line-height:1.6;}
+  .a4-totales{width:280px;margin-left:auto;border-collapse:collapse;}
+  .a4-totales td{padding:8px 10px;font-size:14px;}
+  .a4-totales td:last-child{text-align:right;}
+  .a4-tot-final td{border-top:2px solid #1a1a1a;font-weight:800;font-size:16px;}
+  .a4-firmas{display:flex;justify-content:space-between;margin-top:60px;}
+  .a4-firma{width:40%;text-align:center;font-size:12px;color:#444;}
+  .a4-linea{border-top:1px solid #333;margin-bottom:6px;height:1px;}
+  .a4-footer{margin-top:40px;text-align:center;font-size:12px;color:#666;border-top:1px solid #ddd;padding-top:12px;}
+
+  /* Hoja de etiquetas con código de barras */
+  .etiquetas-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6mm;}
+  .etiqueta-item{border:1px dashed #999;border-radius:4px;padding:6px 4px;text-align:center;overflow:hidden;}
+  .etiqueta-nombre{font-size:10px;font-weight:700;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .etiqueta-precio{font-size:10px;color:#000;margin-bottom:2px;}
+  .etiqueta-item svg{max-width:100%;}
+
+  /* Estadísticas */
+  .stats-resumen{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+  .stats-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 10px;text-align:center;}
+  .stats-valor{font-size:19px;font-weight:800;color:var(--accent);}
+  .stats-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:4px;}
+  @media(max-width:700px){.stats-resumen{grid-template-columns:repeat(2,1fr);}}
+
+  /* Ajustes */
+  .logo-box{
+    display:flex;align-items:center;gap:14px;margin-top:10px;
+    padding:12px;border:1px dashed var(--line);border-radius:8px;background:var(--panel2);
+  }
+  .logo-box img{max-width:90px;max-height:90px;border-radius:6px;background:#fff;padding:4px;}
+  .logo-box .no-logo{color:var(--muted);font-size:12px;}
+  .file-btn{display:inline-block;padding:8px 12px;border:1px solid var(--line);border-radius:6px;cursor:pointer;font-size:12px;color:var(--text);}
+  .file-btn:hover{border-color:var(--accent2);color:var(--accent2);}
+  input[type=file]{display:none;}
+
+  /* ---------- Responsive: tablet & mobile ---------- */
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .table-scroll table{min-width:640px;}
+
+  @media(max-width:768px){
+    main{padding:16px;}
+    header{padding:14px 16px;}
+    header h1{font-size:19px;}
+    #vista-home{padding:20px 16px;}
+    .home-grid{grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;}
+    .home-tile{padding:26px 10px;}
+    .home-icon{font-size:48px;}
+    .home-label{font-size:16px;}
+    .card{padding:14px;}
+    .card h2{font-size:15px;}
+    .row2{grid-template-columns:1fr;gap:0;}
+    .doc-row{flex-wrap:wrap;}
+    .doc-row select{width:100%;}
+    .doc-row input{min-width:0;flex:1 1 140px;}
+    .actions{gap:8px;}
+    .toolbar{flex-wrap:wrap;}
+    .a4{padding:10mm 8mm;}
+    .a4-header{flex-direction:column;align-items:flex-start;gap:12px;}
+    .a4-folio{text-align:left;}
+
+    /* Texto e íconos más grandes, botones con mayor área táctil */
+    body{font-size:16px;}
+    label{font-size:14px;}
+    input,select,textarea{font-size:16px;padding:12px 12px;border-radius:8px;}
+    button.primary{font-size:16px;padding:15px;border-radius:8px;}
+    button.ghost{font-size:14px;padding:10px 14px;border-radius:8px;}
+    button.small-danger{font-size:14px;padding:10px 14px;}
+    .icon-btn{width:42px;height:42px;font-size:19px;}
+    .menu-item{padding:20px 20px;font-size:24px;}
+    .menu-item span{font-size:18px;}
+    .prod-item .name{font-size:16px;}
+    .prod-item .price{font-size:16px;}
+    .badge{font-size:12px;padding:4px 10px;}
+    table{font-size:14px;}
+    th{font-size:12px;}
+
+    /* Inventario: encabezado y resumen adaptados a pantallas angostas */
+    .card-header-row{flex-direction:column;align-items:stretch;}
+    .card-header-row > div{flex-direction:column;width:100%;}
+    .card-header-row button.ghost{width:100%;}
+    .inv-form{padding:12px;}
+    .inv-resumen{grid-template-columns:repeat(3,1fr);gap:6px;}
+    .inv-resumen-item{padding:10px 4px;}
+    .inv-resumen-valor{font-size:15px;}
+    .inv-resumen-label{font-size:9px;}
+
+    /* Tablas de datos: tarjetas centradas y verticales en vez de tabla horizontal
+       (aplica a todas las tablas generadas dinámicamente: Órdenes, Clientes, Productos,
+       Kardex, Historial de ventas) */
+    .table-scroll{overflow-x:visible;}
+    .table-scroll table{min-width:0;width:100%;}
+    .table-scroll table, .table-scroll thead, .table-scroll tbody,
+    .table-scroll th, .table-scroll td, .table-scroll tr{
+      display:block;
+    }
+    .table-scroll thead{display:none;}
+    .table-scroll tr{
+      background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+      margin-bottom:12px;padding:16px;text-align:center;
+    }
+    .table-scroll td{
+      text-align:center;padding:6px 0;border:none;
+    }
+    .table-scroll td[data-label]::before{
+      content:attr(data-label);
+      display:block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;
+      color:var(--muted);margin-bottom:2px;
+    }
+    .table-scroll td[data-label=""]::before{content:none;}
+    .fila-acciones, .table-scroll .actions{display:flex;gap:8px;justify-content:center;margin-top:4px;flex-wrap:wrap;}
+
+    /* Autocompletado de clientes: toques más grandes y legibles */
+    .autocomplete-item{padding:14px 12px;}
+    .autocomplete-item .ac-nombre{font-size:15px;}
+    .autocomplete-item .ac-detalle{font-size:12px;}
+    .autocomplete-lista{max-height:260px;}
+  }
+
+  @media(max-width:520px){
+    header{flex-direction:column;align-items:flex-start;gap:10px;}
+    header button.ghost{width:100%;}
+    header h1{font-size:17px;}
+    .login-card{padding:22px 18px;}
+    .cart-line{flex-wrap:wrap;}
+    .cart-line > div:last-child{width:100%;text-align:left;margin-top:4px;}
+    .prod-item{flex-wrap:wrap;gap:8px;}
+    .home-icon{font-size:44px;}
+    .home-label{font-size:15px;}
+  }
+
+  @media print{
+    body.printing > *:not(#printArea){display:none !important;}
+    #printArea{position:static;left:auto;display:block !important;}
+    @page{margin:0;}
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div id="login-logo"></div>
+    <h1 id="login-titulo">Gestión de Taller</h1>
+    <div class="sub" id="login-subtitulo" style="margin-bottom:20px">Inicia sesión para continuar</div>
+    <label>Usuario</label>
+    <input id="login-usuario" placeholder="Usuario" autocomplete="username">
+    <label>Contraseña</label>
+    <input id="login-clave" type="password" placeholder="Contraseña" autocomplete="current-password">
+    <div id="login-error" class="login-error"></div>
+    <button class="primary" onclick="intentarLogin()">Ingresar</button>
+  </div>
+</div>
+
+<div id="app-content" style="display:none">
+
+<div id="scroll-header" class="scroll-header">
+  <button class="scroll-header-back" onclick="irA('home')" title="Volver al inicio" aria-label="Atrás">
+    <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+  </button>
+  <div class="scroll-header-logo">
+    <img id="scroll-header-img" alt="" style="display:none">
+    <span id="scroll-header-nombre">Gestión de Taller</span>
+  </div>
+</div>
+
+<header>
+  <div class="header-left">
+    <button class="menu-btn" id="menu-toggle" onclick="toggleMenu()">☰</button>
+    <div>
+      <h1>Gestión de Taller</h1>
+      <div class="sub">Órdenes de trabajo y punto de venta</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span id="header-usuario" class="header-usuario"></span>
+    <button class="ghost" onclick="cerrarSesion()">Cerrar sesión</button>
+  </div>
+</header>
+
+<nav id="menu-bar" class="menu-bar">
+  <button class="menu-item" onclick="irA('home')"><span class="m-icon" data-icono="home"></span> <span>Inicio</span></button>
+  <button class="menu-item" data-permiso="ordenes" onclick="irA('ordenes')"><span class="m-icon" data-icono="ordenes"></span> <span>Órdenes de Trabajo</span></button>
+  <button class="menu-item" data-permiso="clientes" onclick="irA('clientes')"><span class="m-icon" data-icono="clientes"></span> <span>Clientes</span></button>
+  <button class="menu-item" data-permiso="pos" onclick="irA('pos')"><span class="m-icon" data-icono="pos"></span> <span>Punto de Venta</span></button>
+  <button class="menu-item" data-permiso="caja" onclick="irA('caja')"><span class="m-icon" data-icono="caja"></span> <span>Caja</span></button>
+  <button class="menu-item" data-permiso="kardex" onclick="irA('kardex')"><span class="m-icon" data-icono="kardex"></span> <span>Productos</span></button>
+  <button class="menu-item" data-permiso="estadisticas" onclick="irA('estadisticas')"><span class="m-icon" data-icono="estadisticas"></span> <span>Estadísticas</span></button>
+  <button class="menu-item" data-permiso="ajustes" onclick="irA('ajustes')"><span class="m-icon" data-icono="ajustes"></span> <span>Ajustes</span></button>
+</nav>
+<div id="menu-overlay" class="menu-overlay" onclick="cerrarMenu()"></div>
+
+<!-- PANTALLA DE INICIO -->
+<section id="vista-home" class="vista active">
+  <div class="home-grid">
+    <button class="home-tile" data-permiso="ordenes" onclick="irA('ordenes')">
+      <span class="home-icon" data-icono="ordenes"></span>
+      <span class="home-label">Órdenes de<br>Trabajo</span>
+    </button>
+    <button class="home-tile" data-permiso="clientes" onclick="irA('clientes')">
+      <span class="home-icon" data-icono="clientes"></span>
+      <span class="home-label">Clientes</span>
+    </button>
+    <button class="home-tile" data-permiso="pos" onclick="irA('pos')">
+      <span class="home-icon" data-icono="pos"></span>
+      <span class="home-label">Punto de<br>Venta</span>
+    </button>
+    <button class="home-tile" data-permiso="caja" onclick="irA('caja')">
+      <span class="home-icon" data-icono="caja"></span>
+      <span class="home-label">Caja</span>
+    </button>
+    <button class="home-tile" data-permiso="kardex" onclick="irA('kardex')">
+      <span class="home-icon" data-icono="kardex"></span>
+      <span class="home-label">Productos</span>
+    </button>
+    <button class="home-tile" data-permiso="estadisticas" onclick="irA('estadisticas')">
+      <span class="home-icon" data-icono="estadisticas"></span>
+      <span class="home-label">Estadísticas</span>
+    </button>
+    <button class="home-tile" data-permiso="ajustes" onclick="irA('ajustes')">
+      <span class="home-icon" data-icono="ajustes"></span>
+      <span class="home-label">Ajustes</span>
+    </button>
+  </div>
+</section>
+
+<main id="vista-secciones" class="vista">
+
+  <!-- TAB ORDENES -->
+  <section id="tab-ordenes" class="tab-content active">
+    <div class="grid">
+      <div class="card">
+        <h2>Nueva orden de trabajo</h2>
+        <label>Cliente</label>
+        <div class="autocomplete-wrap">
+          <input id="ot-cliente" placeholder="Nombre del cliente" autocomplete="off" oninput="buscarSugerenciasCliente('ot')" onfocus="buscarSugerenciasCliente('ot')" onblur="ocultarSugerenciasCliente('ot')">
+          <div id="ot-sugerencias" class="autocomplete-lista"></div>
+        </div>
+        <div class="row2">
+          <div><label>Teléfono</label><input id="ot-telefono" placeholder="999 999 999"></div>
+          <div><label>Fecha entrega</label><input id="ot-fecha" type="date"></div>
+        </div>
+        <label>Equipo / artículo</label>
+        <input id="ot-equipo" placeholder="Ej: Laptop HP, Moto Honda, Reloj...">
+        <label>Falla / trabajo a realizar</label>
+        <textarea id="ot-falla" placeholder="Descripción del problema o servicio"></textarea>
+        <label>Cotización (S/)</label>
+        <input id="ot-cotizacion" type="number" step="0.01" placeholder="0.00" oninput="calcularResto()">
+        <div class="row2">
+          <div><label>Adelanto (S/)</label><input id="ot-adelanto" type="number" step="0.01" placeholder="0.00" oninput="calcularResto()"></div>
+          <div><label>Resto a pagar (S/)</label><input id="ot-resto" type="number" step="0.01" placeholder="0.00" readonly style="opacity:.7"></div>
+        </div>
+
+        <button class="primary" onclick="crearOrden()">Guardar orden</button>
+      </div>
+
+      <div class="card">
+        <div class="card-header-row">
+          <h2 style="margin:0">Órdenes registradas</h2>
+          <button class="ghost" style="border-color:var(--accent2);color:var(--accent2)" onclick="exportarOrdenesExcel()">⬇ Exportar a Excel</button>
+        </div>
+        <div id="ot-resumen"></div>
+        <button class="primary" style="width:100%;margin-top:12px" onclick="abrirVentanaOrdenes()">👁 Ver todas las órdenes</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB CLIENTES -->
+  <section id="tab-clientes" class="tab-content">
+    <div class="grid">
+      <div class="card">
+        <h2 id="cli-form-titulo">Agregar cliente</h2>
+        <input type="hidden" id="cli-editando-id">
+        <label>Nombre</label>
+        <input id="cli-nombre" placeholder="Nombre completo">
+        <div class="row2">
+          <div><label>Teléfono</label><input id="cli-telefono" placeholder="999 999 999"></div>
+          <div>
+            <label>Documento</label>
+            <div class="doc-row">
+              <select id="cli-doc-tipo" style="width:90px">
+                <option value="dni">DNI</option>
+                <option value="ruc">RUC</option>
+              </select>
+              <input id="cli-doc-numero" placeholder="Número">
+            </div>
+          </div>
+        </div>
+        <label>Dirección (opcional)</label>
+        <input id="cli-direccion" placeholder="Dirección">
+        <label>Notas (opcional)</label>
+        <textarea id="cli-notas" placeholder="Preferencias, referencias, etc."></textarea>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="primary" style="flex:1" onclick="guardarCliente()">Guardar cliente</button>
+          <button class="ghost" onclick="cancelarEdicionCliente()">Cancelar</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header-row">
+          <h2 style="margin:0">Clientes registrados</h2>
+          <button class="ghost" style="border-color:var(--accent2);color:var(--accent2)" title="Exportar clientes a Excel" onclick="exportarClientesExcel()">⬇ Exportar</button>
+        </div>
+        <div id="cli-resumen"></div>
+        <button class="primary" style="width:100%;margin-top:12px" onclick="abrirVentanaClientes()">👁 Ver todos los clientes</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB POS -->
+  <section id="tab-pos" class="tab-content">
+    <div class="grid">
+      <div class="card">
+        <h2>1. Datos del cliente</h2>
+        <label>Cliente</label>
+        <div class="autocomplete-wrap">
+          <input id="pv-cliente-nombre" placeholder="Nombre del cliente" autocomplete="off" oninput="buscarSugerenciasCliente('pv')" onfocus="buscarSugerenciasCliente('pv')" onblur="ocultarSugerenciasCliente('pv')">
+          <div id="pv-sugerencias" class="autocomplete-lista"></div>
+        </div>
+        <div class="doc-row" style="margin-top:8px">
+          <select id="pv-doc-tipo" style="width:90px">
+            <option value="dni">DNI</option>
+            <option value="ruc">RUC</option>
+          </select>
+          <input id="pv-doc-numero" placeholder="Número de documento">
+        </div>
+
+        <label style="margin-top:18px">Tipo de ticket</label>
+        <select id="pv-ancho">
+          <option value="58">Ticket 58mm</option>
+          <option value="80">Ticket 80mm</option>
+        </select>
+
+        <label style="margin-top:14px">Método de pago</label>
+        <select id="pv-metodo-pago">
+          <option value="efectivo">Efectivo</option>
+          <option value="tarjeta">Tarjeta</option>
+          <option value="yape_plin">Yape / Plin</option>
+          <option value="transferencia">Transferencia</option>
+        </select>
+
+        <div id="pv-carrito" style="margin-top:16px"><div class="empty">Carrito vacío. Selecciona productos.</div></div>
+        <div class="cart-total"><span>Total</span><span id="pv-total">S/ 0.00</span></div>
+        <button class="primary" onclick="cobrar()">Cobrar e imprimir ticket</button>
+      </div>
+
+      <div class="card">
+        <h2>2. Agregar productos</h2>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6">
+          Para dar de alta productos nuevos (con tipo, marca, precio, código y cantidad), ve a <strong>📦 Productos</strong>. Aquí eliges los que ya tienes para agregarlos a la venta.
+        </div>
+        <button class="ghost" style="margin-top:10px;width:100%" onclick="irA('kardex')">📦 Ir a Productos</button>
+
+        <label style="margin-top:18px">Escanear código de barras</label>
+        <input id="pv-scan" placeholder="Escanea o escribe el código y presiona Enter" onkeydown="if(event.key==='Enter') escanearCodigoBarras()">
+
+        <label style="margin-top:14px">Buscar producto</label>
+        <input id="pv-buscar" placeholder="Escribe el nombre del producto..." oninput="renderCatalogo()">
+
+        <div id="pv-catalogo" style="margin-top:16px" class="list-scroll"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB CAJA -->
+  <section id="tab-caja" class="tab-content">
+    <div class="grid">
+      <div class="card">
+        <h2>Caja registradora</h2>
+        <div id="caja-panel"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header-row">
+          <h2 style="margin:0">Historial de cierres</h2>
+          <button class="ghost" style="border-color:var(--accent2);color:var(--accent2)" title="Exportar historial de caja a Excel" onclick="exportarCajaExcel()">⬇ Exportar</button>
+        </div>
+        <div id="caja-resumen-historial"></div>
+        <button class="primary" style="width:100%;margin-top:12px" onclick="abrirVentanaCaja()">👁 Ver todos los cierres</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB KARDEX -->
+  <section id="tab-kardex" class="tab-content">
+    <div class="grid">
+      <div class="card">
+        <div class="card-header-row">
+          <h2 style="margin:0">Inventario</h2>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="ghost" style="border-color:var(--accent2);color:var(--accent2)" title="Imprimir códigos de barra" onclick="imprimirTodosCodigosBarra()">🏷 Códigos de barra</button>
+            <button class="ghost" style="border-color:var(--accent2);color:var(--accent2)" title="Exportar inventario a Excel" onclick="exportarInventarioExcel()">⬇ Exportar</button>
+          </div>
+        </div>
+
+        <div class="inv-form">
+          <label>Nombre del producto</label>
+          <input id="inv-nombre" placeholder="Nombre del producto">
+          <div class="row2" style="margin-top:8px">
+            <div><label>Tipo</label><input id="inv-tipo" placeholder="Ej: Repuesto, Accesorio, Servicio"></div>
+            <div><label>Marca</label><input id="inv-marca" placeholder="Ej: Bosch, Genérico"></div>
+          </div>
+          <div class="row2" style="margin-top:8px">
+            <div><label>Precio (S/)</label><input id="inv-precio" type="number" step="0.01" placeholder="0.00"></div>
+            <div><label>Cantidad</label><input id="inv-cantidad" type="number" step="1" placeholder="0"></div>
+          </div>
+          <label style="margin-top:8px">Código de barras (opcional)</label>
+          <input id="inv-codigo" placeholder="Se genera solo si lo dejas vacío">
+          <button class="primary" style="margin-top:10px;width:100%" onclick="agregarProducto()">+ Agregar producto</button>
+        </div>
+
+        <div class="inv-resumen">
+          <div class="inv-resumen-item">
+            <div class="inv-resumen-valor" id="kx-total-productos">0</div>
+            <div class="inv-resumen-label">Productos</div>
+          </div>
+          <div class="inv-resumen-item">
+            <div class="inv-resumen-valor" id="kx-total-unidades">0</div>
+            <div class="inv-resumen-label">Unidades en stock</div>
+          </div>
+          <div class="inv-resumen-item">
+            <div class="inv-resumen-valor" id="kx-valor-total">S/ 0.00</div>
+            <div class="inv-resumen-label">Valor total</div>
+          </div>
+        </div>
+
+        <button class="primary" style="width:100%;margin-top:14px" onclick="abrirVentanaInventario()">👁 Ver todo el inventario</button>
+      </div>
+
+      <div class="card">
+        <div class="card-header-row">
+          <h2 style="margin:0">Movimientos (Kardex)</h2>
+          <button class="ghost" style="border-color:var(--accent2);color:var(--accent2)" title="Exportar movimientos a Excel" onclick="exportarKardexExcel()">⬇ Exportar</button>
+        </div>
+        <div id="kx-mov-resumen"></div>
+        <button class="primary" style="width:100%;margin-top:12px" onclick="abrirVentanaMovimientos()">👁 Ver todos los movimientos</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB ESTADISTICAS -->
+  <section id="tab-estadisticas" class="tab-content">
+    <div class="stats-resumen">
+      <div class="stats-card">
+        <div class="stats-valor" id="est-ventas-total">S/ 0.00</div>
+        <div class="stats-label">Ventas totales</div>
+      </div>
+      <div class="stats-card">
+        <div class="stats-valor" id="est-num-ventas">0</div>
+        <div class="stats-label">N° de ventas</div>
+      </div>
+      <div class="stats-card">
+        <div class="stats-valor" id="est-ticket-promedio">S/ 0.00</div>
+        <div class="stats-label">Ticket promedio</div>
+      </div>
+      <div class="stats-card">
+        <div class="stats-valor" id="est-ventas-hoy">S/ 0.00</div>
+        <div class="stats-label">Ventas de hoy</div>
+      </div>
+    </div>
+
+    <div class="grid" style="margin-top:18px">
+      <div class="card">
+        <h2>Ventas de los últimos 14 días</h2>
+        <canvas id="chart-ventas-dias" height="220"></canvas>
+      </div>
+      <div class="card">
+        <h2>Productos más vendidos</h2>
+        <canvas id="chart-top-productos" height="220"></canvas>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <div class="card-header-row">
+        <h2 style="margin:0">Historial de ventas</h2>
+        <button class="ghost" style="border-color:var(--accent2);color:var(--accent2)" onclick="exportarVentasExcel()">⬇ Exportar historial</button>
+      </div>
+
+      <div class="row2">
+        <input id="est-filtro-cliente" placeholder="Filtrar por cliente..." oninput="renderHistorialVentas()">
+        <input id="est-filtro-producto" placeholder="Filtrar por producto..." oninput="renderHistorialVentas()">
+      </div>
+      <div class="row2" style="margin-top:8px">
+        <div><label style="margin:0 0 4px">Desde</label><input id="est-filtro-desde" type="date" oninput="renderHistorialVentas()"></div>
+        <div><label style="margin:0 0 4px">Hasta</label><input id="est-filtro-hasta" type="date" oninput="renderHistorialVentas()"></div>
+      </div>
+      <button class="ghost" style="width:100%;margin-top:8px" onclick="limpiarFiltrosVentas()">✕ Limpiar filtros</button>
+
+      <div id="est-historial" class="list-scroll" style="margin-top:12px"><div class="empty">Sin ventas registradas.</div></div>
+    </div>
+  </section>
+
+  <!-- TAB AJUSTES -->
+  <section id="tab-ajustes" class="tab-content">
+
+    <!-- Accesos con iconos -->
+    <div id="aj-home" class="aj-vista active">
+      <div class="home-grid">
+        <button class="home-tile" onclick="irAjustes('empresa')">
+          <span class="home-icon" data-icono="aj-empresa"></span>
+          <span class="home-label">Datos de la<br>Empresa</span>
+        </button>
+        <button class="home-tile" id="aj-tile-seguridad" onclick="irAjustes('seguridad')">
+          <span class="home-icon" data-icono="aj-seguridad"></span>
+          <span class="home-label">Seguridad</span>
+        </button>
+        <button class="home-tile" id="aj-tile-usuarios" onclick="irAjustes('usuarios')">
+          <span class="home-icon" data-icono="aj-usuarios"></span>
+          <span class="home-label">Usuarios</span>
+        </button>
+        <button class="home-tile" onclick="irAjustes('whatsapp')">
+          <span class="home-icon" data-icono="aj-whatsapp"></span>
+          <span class="home-label">Mensaje de<br>WhatsApp</span>
+        </button>
+        <button class="home-tile" onclick="irAjustes('apariencia')">
+          <span class="home-icon" data-icono="aj-apariencia"></span>
+          <span class="home-label">Apariencia</span>
+        </button>
+        <button class="home-tile" onclick="irAjustes('datos')">
+          <span class="home-icon" data-icono="aj-datos"></span>
+          <span class="home-label">Copia de<br>Seguridad</span>
+        </button>
+        <button class="home-tile" onclick="irAjustes('impresion')">
+          <span class="home-icon" data-icono="aj-impresion"></span>
+          <span class="home-label">Edición de<br>Impresión</span>
+        </button>
+        <button class="home-tile" onclick="irAjustes('recursos')">
+          <span class="home-icon" data-icono="aj-recursos"></span>
+          <span class="home-label">Descargar<br>Recursos</span>
+        </button>
+        <button class="home-tile" onclick="irAjustes('iconos')">
+          <span class="home-icon" data-icono="aj-iconos"></span>
+          <span class="home-label">Iconos</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="aj-sub-empresa" class="aj-vista">
+      <button class="ghost aj-back" onclick="irAjustes('home')">← Volver</button>
+      <div class="grid">
+        <div class="card">
+          <h2>Datos de la empresa</h2>
+          <label>Nombre del negocio</label>
+          <input id="aj-nombre" placeholder="Ej: Taller El Rápido">
+          <label>Dirección</label>
+          <input id="aj-direccion" placeholder="Dirección del local">
+          <div class="row2">
+            <div><label>Teléfono</label><input id="aj-telefono" placeholder="999 999 999"></div>
+            <div><label>RUC / DNI</label><input id="aj-ruc" placeholder="Opcional"></div>
+          </div>
+          <label>Mensaje de pie de página (tickets)</label>
+          <textarea id="aj-mensaje" placeholder="Ej: Gracias por su preferencia"></textarea>
+
+          <label>Logo de la empresa</label>
+          <div class="logo-box">
+            <div id="aj-logo-preview"><span class="no-logo">Sin logo</span></div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <label class="file-btn" for="aj-logo-input">Subir logo</label>
+              <input type="file" id="aj-logo-input" accept="image/*" onchange="subirLogo(event)">
+              <button class="small-danger" onclick="quitarLogo()">Quitar logo</button>
+            </div>
+          </div>
+
+          <button class="primary" onclick="guardarAjustes()">Guardar ajustes</button>
+        </div>
+
+        <div class="card">
+          <h2>Vista previa del ticket</h2>
+          <div id="aj-preview" style="background:#fff;border-radius:8px;overflow:hidden"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="aj-sub-seguridad" class="aj-vista">
+      <button class="ghost aj-back" onclick="irAjustes('home')">← Volver</button>
+      <div class="card" style="max-width:500px">
+        <h2>Seguridad</h2>
+        <label>Usuario administrador</label>
+        <input id="aj-usuario" placeholder="admin">
+        <div class="row2">
+          <div><label>Nueva contraseña</label><input id="aj-clave1" type="password" placeholder="Dejar vacío para no cambiar"></div>
+          <div><label>Repetir contraseña</label><input id="aj-clave2" type="password" placeholder="Repetir"></div>
+        </div>
+        <button class="primary" onclick="guardarSeguridad()">Guardar credenciales</button>
+        <div style="font-size:11px;color:var(--muted);margin-top:14px;line-height:1.6">
+          Esta es la cuenta con acceso total. Para crear cuentas adicionales con permisos limitados, ve a <strong>👥 Usuarios</strong>.
+        </div>
+      </div>
+    </div>
+
+    <div id="aj-sub-usuarios" class="aj-vista">
+      <button class="ghost aj-back" onclick="irAjustes('home')">← Volver</button>
+      <div class="grid">
+        <div class="card">
+          <h2>Nuevo usuario</h2>
+          <label>Nombre</label>
+          <input id="us-nombre" placeholder="Nombre completo">
+          <div class="row2" style="margin-top:8px">
+            <div><label>Usuario</label><input id="us-usuario" placeholder="usuario"></div>
+            <div><label>Contraseña</label><input id="us-clave" type="password" placeholder="Contraseña"></div>
+          </div>
+          <label class="switch-row" style="margin-top:14px">
+            <input type="checkbox" id="us-admin" onchange="toggleUsPermisos()">
+            <span>Es administrador (acceso total, sin restricciones)</span>
+          </label>
+          <div id="us-permisos-box">
+            <label style="margin-top:16px">Permisos</label>
+            <div id="us-permisos" class="permisos-grid"></div>
+          </div>
+          <button class="primary" style="margin-top:14px" onclick="crearUsuario()">+ Crear usuario</button>
+        </div>
+
+        <div class="card">
+          <h2>Usuarios registrados</h2>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">
+            El acceso de administrador (definido en Seguridad) siempre tiene acceso completo. Aquí puedes crear administradores adicionales o usuarios con acceso restringido solo a ciertas funciones.
+          </div>
+          <div id="us-lista" class="list-scroll"><div class="empty">Sin usuarios adicionales.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="aj-sub-whatsapp" class="aj-vista">
+      <button class="ghost aj-back" onclick="irAjustes('home')">← Volver</button>
+      <div class="card" style="max-width:600px">
+        <h2>Mensaje de WhatsApp</h2>
+        <label>Plantilla del mensaje</label>
+        <textarea id="aj-whatsapp" style="min-height:160px" placeholder="Escribe el mensaje que se enviará al avisar por WhatsApp"></textarea>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5">
+          Variables disponibles: {cliente}, {negocio}, {orden}, {equipo}, {estado}, {cotizacion}, {adelanto}, {resto}, {fecha}
+        </div>
+        <button class="primary" onclick="guardarMensajeWhatsApp()">Guardar mensaje</button>
+      </div>
+    </div>
+
+    <div id="aj-sub-apariencia" class="aj-vista">
+      <button class="ghost aj-back" onclick="irAjustes('home')">← Volver</button>
+      <div class="card" style="max-width:500px">
+        <h2>Apariencia</h2>
+
+        <label>Tema de la interfaz</label>
+        <select id="aj-tema" onchange="cambiarTema()">
+          <option value="sistema">Según el sistema</option>
+          <option value="claro">Claro</option>
+          <option value="oscuro">Oscuro</option>
+        </select>
+
+        <label style="margin-top:18px">Color principal</label>
+        <div class="color-row">
+          <input type="color" id="aj-color-principal" oninput="previsualizarColores()">
+          <span id="aj-color-principal-hex" class="color-hex"></span>
+        </div>
+        <label>Color secundario</label>
+        <div class="color-row">
+          <input type="color" id="aj-color-secundario" oninput="previsualizarColores()">
+          <span id="aj-color-secundario-hex" class="color-hex"></span>
+        </div>
+        <button class="primary" onclick="guardarColores()">Guardar colores</button>
+        <button class="ghost" style="width:100%;margin-top:8px" onclick="restablecerColores()">Restablecer colores por defecto</button>
+      </div>
+    </div>
+
+    <div id="aj-sub-datos" class="aj-vista">
+      <button class="ghost aj-back" onclick="irAjustes('home')">← Volver</button>
+      <div class="grid">
+        <div class="card">
+          <h2>Copia de seguridad</h2>
+          <p style="color:var(--muted);font-size:13px;line-height:1.5">
+            Descarga un archivo con todas tus órdenes, productos, ventas y ajustes. Guárdalo en un lugar seguro.
+          </p>
+          <button class="primary" onclick="crearCopiaSeguridad()">⬇ Crear copia de seguridad</button>
+
+          <label style="margin-top:20px">Restaurar copia de seguridad</label>
+          <div style="display:flex;gap:6px;align-items:center">
+            <label class="file-btn" for="dt-restaurar-input" style="flex-shrink:0">Elegir archivo</label>
+            <span id="dt-restaurar-nombre" style="font-size:12px;color:var(--muted)">Ningún archivo seleccionado</span>
+          </div>
+          <input type="file" id="dt-restaurar-input" accept="application/json" onchange="restaurarCopiaSeguridad(event)">
+          <div style="font-size:11px;color:var(--danger);margin-top:8px;line-height:1.5">
+            ⚠️ Restaurar reemplaza todos los datos actuales de este dispositivo con los del archivo.
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Sincronización de tu cuenta</h2>
+          <div style="font-size:12px;color:var(--muted);line-height:1.6">
+            Tus datos se guardan ligados a <strong>tu cuenta</strong>, no al navegador. Por eso, si cambias de navegador (Chrome, Edge, Firefox...) o de dispositivo y vuelves a iniciar sesión, tus órdenes, ventas y ajustes reaparecen automáticamente.
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.6">
+            Además, cada navegador guarda una <strong>copia local (caché sin conexión)</strong> para que la app siga funcionando aunque te quedes sin internet — apenas vuelva la señal, se actualiza sola con lo último de tu cuenta.
+          </div>
+
+          <h2 style="margin-top:22px">Compartir con otros dispositivos</h2>
+          <label class="switch-row">
+            <input type="checkbox" id="dt-modo-red" onchange="cambiarModoRed(this.checked)">
+            <span>Compartir estos datos con otros usuarios</span>
+          </label>
+          <div style="font-size:12px;color:var(--muted);margin-top:10px;line-height:1.6">
+            Actívalo si varias personas (por ejemplo, distintos empleados) deben ver y editar las mismas órdenes y ventas desde <strong>este mismo enlace</strong> de la app, en lugar de tener cada quien su propia información.
+          </div>
+          <div style="font-size:11px;color:var(--accent);margin-top:12px;line-height:1.6;background:#3a2010;border:1px solid var(--line);border-radius:6px;padding:8px 10px">
+            Si cada persona descarga el archivo HTML y lo abre por separado (fuera de este enlace), no hay forma de compartir datos automáticamente entre esas copias — en ese caso usa la copia de seguridad para pasarlos manualmente.
+          </div>
+        </div>
+
+      </div>
+
+      <div class="card" style="margin-top:20px">
+        <h2>Sincronizar entre navegadores</h2>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6">
+          La base de datos local (IndexedDB) queda encerrada dentro de cada navegador — Chrome, Edge y Firefox no comparten esos datos entre sí, ni aunque sea la misma computadora. Esto es una restricción de seguridad de los navegadores, no se puede evitar desde el código de la app.
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:10px;line-height:1.6">
+          La solución real: conecta un <strong>archivo en tu disco</strong> como fuente de datos. Cada vez que algo cambie se guarda ahí automáticamente, y si abres la app en otro navegador y conectas ese mismo archivo, verás los mismos datos — sin depender de la base interna de cada navegador.
+        </div>
+
+        <div id="df-estado" class="doc-estado" style="margin-top:12px">No hay ningún archivo conectado.</div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          <button class="primary" onclick="crearArchivoDatos()">🆕 Crear archivo nuevo</button>
+          <button class="ghost" onclick="conectarArchivoExistente()">📂 Conectar archivo existente</button>
+          <button class="ghost" id="df-btn-desconectar" style="display:none;border-color:var(--danger);color:var(--danger)" onclick="desconectarArchivoDatos()">🔌 Desconectar archivo</button>
+        </div>
+
+        <div style="font-size:11px;color:var(--muted);margin-top:12px;line-height:1.6">
+          Disponible solo en navegadores basados en Chromium (Chrome, Edge, Brave, Opera). El navegador te pedirá permiso cada vez que reabras la app en un dispositivo distinto — es normal, es parte de su seguridad.
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:20px">
+        <h2>Google Drive</h2>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6">
+          Guarda tus datos en un archivo dentro de tu propio Google Drive. Cada cambio se sube automáticamente, y puedes conectarte desde cualquier navegador o dispositivo iniciando sesión con la misma cuenta de Google.
+        </div>
+
+        <div class="gd-setup" id="gd-setup">
+          <label style="margin-top:16px">Google Client ID</label>
+          <input id="gd-client-id" placeholder="xxxxxxxxxx.apps.googleusercontent.com">
+          <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6">
+            Necesitas tu propio Client ID de Google Cloud (gratuito) para conectar tu Drive.
+            <button class="ghost" style="padding:2px 8px;font-size:11px;margin-left:4px" onclick="abrirAyudaGoogle()">❓ ¿Cómo lo obtengo?</button>
+          </div>
+          <button class="primary" style="margin-top:12px" onclick="guardarClientIdGoogle()">Guardar Client ID</button>
+        </div>
+
+        <div id="gd-estado" class="doc-estado" style="margin-top:14px">No conectado a Google Drive.</div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          <button class="primary" onclick="conectarGoogleDrive()">🔑 Conectar con Google Drive</button>
+          <button class="ghost" id="gd-btn-crear" style="display:none" onclick="crearArchivoDrive()">🆕 Crear archivo en Drive</button>
+          <button class="ghost" id="gd-btn-existente" style="display:none" onclick="conectarArchivoDriveExistente()">📂 Conectar archivo existente</button>
+          <button class="ghost" id="gd-btn-desconectar" style="display:none;border-color:var(--danger);color:var(--danger)" onclick="desconectarGoogleDrive()">🔌 Desconectar Drive</button>
+        </div>
+
+        <div style="font-size:11px;color:var(--muted);margin-top:12px;line-height:1.6">
+          Al conectar por primera vez, Google puede mostrar un aviso de "app no verificada" — es normal en apps configuradas por ti mismo; para continuar, pulsa "Avanzado" y luego "Ir a la app". La sesión dura alrededor de una hora y luego te pedirá volver a autorizar.
+        </div>
+      </div>
+    </div>
+
+    <div id="aj-sub-impresion" class="aj-vista">
+      <button class="ghost aj-back" onclick="irAjustes('home')">← Volver</button>
+      <div class="grid">
+        <div class="card">
+          <h2>Tickets</h2>
+          <label>Ancho por defecto</label>
+          <select id="imp-ancho-defecto" onchange="previsualizarImpresion()">
+            <option value="58">58mm</option>
+            <option value="80">80mm</option>
+          </select>
+
+          <label style="margin-top:14px">Tamaño de letra</label>
+          <select id="imp-fuente-ticket" onchange="previsualizarImpresion()">
+            <option value="10">Pequeña</option>
+            <option value="11">Normal</option>
+            <option value="13">Grande</option>
+            <option value="15">Muy grande</option>
+          </select>
+
+          <h2 style="margin-top:22px">Código de barras</h2>
+          <label>Formato</label>
+          <select id="imp-bc-formato" onchange="previsualizarImpresion()">
+            <option value="CODE128">CODE128 (recomendado, acepta letras y números)</option>
+            <option value="EAN13">EAN-13 (13 dígitos numéricos)</option>
+            <option value="CODE39">CODE39</option>
+            <option value="UPC">UPC</option>
+          </select>
+
+          <div class="row2" style="margin-top:8px">
+            <div><label>Alto (px)</label><input id="imp-bc-alto" type="number" min="20" max="100" oninput="previsualizarImpresion()"></div>
+            <div><label>Grosor de línea</label><input id="imp-bc-grosor" type="number" step="0.1" min="0.5" max="4" oninput="previsualizarImpresion()"></div>
+          </div>
+
+          <label class="switch-row">
+            <input type="checkbox" id="imp-bc-numero" onchange="previsualizarImpresion()">
+            <span>Mostrar el número debajo del código</span>
+          </label>
+
+          <div style="display:flex;gap:8px;margin-top:16px">
+            <button class="primary" style="flex:1" onclick="guardarImpresion()">Guardar</button>
+            <button class="ghost" onclick="restablecerImpresion()">Restablecer</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Vista previa</h2>
+          <div id="imp-preview" style="background:#fff;border-radius:8px;overflow:hidden;padding:4px"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="aj-sub-recursos" class="aj-vista">
+      <button class="ghost aj-back" onclick="irAjustes('home')">← Volver</button>
+      <div class="card" style="max-width:700px">
+        <h2>Descargar recursos</h2>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6">
+          Algunas funciones (Excel, códigos de barra, gráficos de Estadísticas) usan librerías externas. La primera vez necesitas conexión a internet para descargarlas — luego quedan guardadas en este navegador y funcionan sin conexión. Si no tienes internet ahora, puedes subir el archivo manualmente si ya lo tienes descargado en tu computadora.
+        </div>
+
+        <div id="rec-lista" style="margin-top:16px"></div>
+
+        <button class="primary" style="margin-top:14px;width:100%" onclick="descargarTodasLasLibrerias()">📥 Descargar todas ahora</button>
+      </div>
+    </div>
+
+    <div id="aj-sub-iconos" class="aj-vista">
+      <button class="ghost aj-back" onclick="irAjustes('home')">← Volver</button>
+      <div class="card" style="max-width:760px">
+        <div class="card-header-row">
+          <h2 style="margin:0">Iconos de la app</h2>
+          <button class="ghost" onclick="restablecerIconos()">↺ Restablecer todos</button>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6">
+          Elige el ícono que quieres mostrar en el menú lateral y en la pantalla de inicio para cada sección. Se aplica de inmediato al tocarlo.
+        </div>
+        <div id="icon-selector-lista" style="margin-top:16px"></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+</div>
+
+<!-- Ventana de ayuda -->
+<div id="modal-ayuda-overlay" class="modal-overlay" onclick="if(event.target===this) cerrarAyuda()">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h2 id="modal-ayuda-titulo">Ayuda</h2>
+      <button class="modal-cerrar" onclick="cerrarAyuda()">✕</button>
+    </div>
+    <div id="modal-ayuda-contenido" class="modal-contenido"></div>
+  </div>
+</div>
+
+<div id="printArea"></div>
+
+<script>
+let ordenes = [];
+let productos = [];
+let clientes = [];
+let cajaSesiones = [];
+let carrito = []; // {id, nombre, precio, cantidad}
+let ajustes = {
+  nombre:'', direccion:'', telefono:'', ruc:'', mensaje:'', logo:'', whatsapp:'',
+  colorPrincipal:'#FF6A00', colorSecundario:'#00D9B5', tema:'sistema',
+  impresion: { anchoDefecto:'58', fontSizeTicket:11, bcFormato:'CODE128', bcAlto:42, bcGrosor:1.6, bcNumero:true },
+  iconos: {}
+};
+let auth = {usuario:'admin', clave:'212345'};
+let usuarios = [];
+let currentUser = null; // {nombre, usuario, esAdmin, permisos:{...}}
+
+// ---------- PERMISOS ----------
+const PERMISOS_DISPONIBLES = [
+  {clave:'ordenes', label:'Órdenes de Trabajo'},
+  {clave:'clientes', label:'Clientes'},
+  {clave:'pos', label:'Punto de Venta'},
+  {clave:'caja', label:'Caja registradora'},
+  {clave:'kardex', label:'Productos e Inventario'},
+  {clave:'estadisticas', label:'Estadísticas e Historial'},
+  {clave:'ajustes', label:'Ajustes'}
+];
+
+function permisosCompletos(){
+  const obj = {};
+  PERMISOS_DISPONIBLES.forEach(p => obj[p.clave] = true);
+  return obj;
+}
+
+function tienePermiso(clave){
+  if(!currentUser) return false;
+  if(currentUser.esAdmin) return true;
+  return !!(currentUser.permisos && currentUser.permisos[clave]);
+}
+
+function aplicarPermisos(){
+  document.querySelectorAll('[data-permiso]').forEach(el=>{
+    const clave = el.getAttribute('data-permiso');
+    el.style.display = tienePermiso(clave) ? '' : 'none';
+  });
+  const esAdmin = !!(currentUser && currentUser.esAdmin);
+  const tSeg = document.getElementById('aj-tile-seguridad');
+  const tUsu = document.getElementById('aj-tile-usuarios');
+  if(tSeg) tSeg.style.display = esAdmin ? '' : 'none';
+  if(tUsu) tUsu.style.display = esAdmin ? '' : 'none';
+  const nombreEl = document.getElementById('header-usuario');
+  if(nombreEl) nombreEl.textContent = currentUser ? currentUser.nombre : '';
+}
+
+// ---------- LOGIN ----------
+// ---------- DESCARGAR RECURSOS (librerías externas) ----------
+const RECURSOS_DISPONIBLES = [
+  {
+    id: 'xlsx',
+    nombre: '📊 Exportar a Excel (SheetJS)',
+    descripcion: 'Necesaria para los botones "Exportar a Excel" de Órdenes, Inventario, Kardex e Historial de ventas.',
+    url: 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+    verificar: () => typeof XLSX !== 'undefined'
+  },
+  {
+    id: 'jsbarcode',
+    nombre: '🏷 Códigos de barra (JsBarcode)',
+    descripcion: 'Necesaria para imprimir etiquetas y códigos de barra en Inventario.',
+    url: 'https://cdnjs.cloudflare.com/ajax/libs/JsBarcode/3.11.5/JsBarcode.all.min.js',
+    verificar: () => typeof JsBarcode !== 'undefined'
+  },
+  {
+    id: 'chartjs',
+    nombre: '📈 Gráficos (Chart.js)',
+    descripcion: 'Necesaria para los gráficos de la pestaña Estadísticas.',
+    url: 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js',
+    verificar: () => typeof Chart !== 'undefined'
+  }
+];
+
+function renderListaRecursos(){
+  const el = document.getElementById('rec-lista');
+  if(!el) return;
+  el.innerHTML = RECURSOS_DISPONIBLES.map(r=>{
+    const cargada = r.verificar();
+    return `
+      <div class="recurso-item">
+        <div style="flex:1;min-width:200px">
+          <div class="recurso-nombre">${r.nombre}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${r.descripcion}</div>
+          <div id="rec-estado-${r.id}" class="doc-estado ${cargada?'ok':'error'}" style="margin-top:6px">${cargada ? '✓ Cargada y lista' : '✗ No disponible todavía'}</div>
+        </div>
+        <div class="recurso-acciones">
+          <button class="ghost" onclick="cargarLibreriaCDN('${r.id}')">🔄 Reintentar</button>
+          <label class="file-btn" for="rec-file-${r.id}">📂 Subir archivo</label>
+          <input type="file" id="rec-file-${r.id}" accept=".js" onchange="cargarLibreriaLocal('${r.id}', event)">
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function actualizarEstadoRecurso(id){
+  const r = RECURSOS_DISPONIBLES.find(x=>x.id===id);
+  if(!r) return;
+  const el = document.getElementById('rec-estado-'+id);
+  if(!el) return;
+  const cargada = r.verificar();
+  el.textContent = cargada ? '✓ Cargada y lista' : '✗ No disponible todavía';
+  el.className = 'doc-estado ' + (cargada ? 'ok' : 'error');
+}
+
+function cargarLibreriaCDN(id){
+  const r = RECURSOS_DISPONIBLES.find(x=>x.id===id);
+  if(!r || r.verificar()){ actualizarEstadoRecurso(id); return; }
+  const el = document.getElementById('rec-estado-'+id);
+  if(el){ el.textContent = 'Descargando...'; el.className = 'doc-estado loading'; }
+  const script = document.createElement('script');
+  script.src = r.url;
+  script.onload = () => actualizarEstadoRecurso(id);
+  script.onerror = () => {
+    if(el){ el.textContent = '✗ No se pudo descargar (revisa tu conexión a internet)'; el.className = 'doc-estado error'; }
+  };
+  document.head.appendChild(script);
+}
+
+function cargarLibreriaLocal(id, event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const script = document.createElement('script');
+      script.textContent = reader.result;
+      document.head.appendChild(script);
+      setTimeout(()=> actualizarEstadoRecurso(id), 100);
+    }catch(e){
+      alert('No se pudo cargar el archivo subido: ' + e.message);
+    }
+  };
+  reader.onerror = () => alert('No se pudo leer el archivo.');
+  reader.readAsText(file);
+}
+
+function descargarTodasLasLibrerias(){
+  RECURSOS_DISPONIBLES.forEach(r => { if(!r.verificar()) cargarLibreriaCDN(r.id); });
+  setTimeout(renderListaRecursos, 800);
+}
+
+async function iniciarApp(){
+  await cargarModoRed();
+  auth = await loadData('auth', auth);
+  ajustes = await loadData('ajustes', ajustes);
+  usuarios = await loadData('usuarios', []);
+  aplicarColores();
+  aplicarTema();
+  aplicarEstiloTicket();
+  // Intenta cargar las librerías externas en segundo plano, sin interrumpir el inicio de sesión
+  RECURSOS_DISPONIBLES.forEach(r => { if(!r.verificar()) cargarLibreriaCDN(r.id); });
+  renderLoginBranding();
+  document.getElementById('login-usuario').focus();
+  document.getElementById('login-clave').addEventListener('keydown', e=>{ if(e.key==='Enter') intentarLogin(); });
+  document.getElementById('login-usuario').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('login-clave').focus(); });
+}
+iniciarApp();
+
+async function cargarModoRed(){
+  const guardado = await dbGet('modo_red');
+  modoRed = guardado === true;
+}
+
+async function guardarModoRed(valor){
+  modoRed = valor;
+  await dbSet('modo_red', valor);
+}
+
+function renderLoginBranding(){
+  document.getElementById('login-logo').innerHTML = ajustes.logo ? `<img src="${ajustes.logo}" alt="Logo">` : '';
+  document.getElementById('login-titulo').textContent = ajustes.nombre || 'Gestión de Taller';
+  document.getElementById('login-subtitulo').textContent = ajustes.direccion || 'Inicia sesión para continuar';
+  renderScrollHeaderBranding();
+}
+
+function renderScrollHeaderBranding(){
+  const img = document.getElementById('scroll-header-img');
+  const nombre = document.getElementById('scroll-header-nombre');
+  if(!img || !nombre) return;
+  if(ajustes.logo){ img.src = ajustes.logo; img.style.display = 'block'; }
+  else { img.style.display = 'none'; }
+  nombre.textContent = ajustes.nombre || 'Gestión de Taller';
+}
+
+// Muestra el encabezado flotante al desplazarse hacia abajo
+window.addEventListener('scroll', () => {
+  const header = document.getElementById('scroll-header');
+  if(!header) return;
+  if(window.scrollY > 80) header.classList.add('visible');
+  else header.classList.remove('visible');
+});
+
+function intentarLogin(){
+  const usuario = document.getElementById('login-usuario').value.trim();
+  const clave = document.getElementById('login-clave').value;
+  const errEl = document.getElementById('login-error');
+
+  if(usuario===auth.usuario && clave===auth.clave){
+    currentUser = { nombre:'Administrador', usuario: auth.usuario, esAdmin:true, permisos: permisosCompletos() };
+  } else {
+    const u = usuarios.find(x => x.usuario===usuario && x.clave===clave);
+    currentUser = u ? { nombre:u.nombre, usuario:u.usuario, esAdmin:!!u.esAdmin, permisos:u.permisos || {} } : null;
+  }
+
+  if(currentUser){
+    errEl.textContent = '';
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-content').style.display = 'block';
+    document.getElementById('login-clave').value = '';
+    irA('home');
+    init();
+  } else {
+    errEl.textContent = 'Usuario o contraseña incorrectos.';
+  }
+}
+
+function cerrarSesion(){
+  currentUser = null;
+  document.getElementById('app-content').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-usuario').value = '';
+  document.getElementById('login-clave').value = '';
+  document.getElementById('login-error').textContent = '';
+  cerrarMenu();
+  irA('home');
+  document.getElementById('login-usuario').focus();
+}
+
+async function guardarSeguridad(){
+  const usuario = document.getElementById('aj-usuario').value.trim();
+  const clave1 = document.getElementById('aj-clave1').value;
+  const clave2 = document.getElementById('aj-clave2').value;
+  if(!usuario){ alert('El usuario no puede estar vacío.'); return; }
+  if(clave1 || clave2){
+    if(clave1.length<4){ alert('La contraseña debe tener al menos 4 caracteres.'); return; }
+    if(clave1!==clave2){ alert('Las contraseñas no coinciden.'); return; }
+    auth.clave = clave1;
+  }
+  auth.usuario = usuario;
+  await saveData('auth', auth);
+  document.getElementById('aj-clave1').value = '';
+  document.getElementById('aj-clave2').value = '';
+  alert('Credenciales actualizadas.');
+}
+
+// ---------- USUARIOS Y PERMISOS ----------
+function renderFormPermisos(){
+  const el = document.getElementById('us-permisos');
+  if(!el) return;
+  el.innerHTML = PERMISOS_DISPONIBLES.map(p => `
+    <label><input type="checkbox" id="us-perm-${p.clave}" checked> ${p.label}</label>
+  `).join('');
+}
+
+function toggleUsPermisos(){
+  const esAdmin = document.getElementById('us-admin').checked;
+  document.getElementById('us-permisos-box').style.display = esAdmin ? 'none' : 'block';
+}
+
+async function crearUsuario(){
+  const nombre = document.getElementById('us-nombre').value.trim();
+  const usuario = document.getElementById('us-usuario').value.trim();
+  const clave = document.getElementById('us-clave').value;
+  const esAdmin = document.getElementById('us-admin').checked;
+
+  if(!nombre || !usuario || !clave){ alert('Completa nombre, usuario y contraseña.'); return; }
+  if(clave.length<4){ alert('La contraseña debe tener al menos 4 caracteres.'); return; }
+  if(usuario===auth.usuario || usuarios.some(u=>u.usuario===usuario)){
+    alert('Ya existe un usuario con ese nombre de usuario.'); return;
+  }
+
+  const permisos = esAdmin ? permisosCompletos() : {};
+  if(!esAdmin){
+    PERMISOS_DISPONIBLES.forEach(p => permisos[p.clave] = document.getElementById(`us-perm-${p.clave}`).checked);
+  }
+
+  usuarios.push({ id:'U'+Date.now(), nombre, usuario, clave, esAdmin, permisos });
+  await saveData('usuarios', usuarios);
+
+  document.getElementById('us-nombre').value = '';
+  document.getElementById('us-usuario').value = '';
+  document.getElementById('us-clave').value = '';
+  document.getElementById('us-admin').checked = false;
+  toggleUsPermisos();
+  renderFormPermisos();
+  renderUsuarios();
+  alert(esAdmin ? 'Administrador creado.' : 'Usuario creado.');
+}
+
+function renderUsuarios(){
+  const el = document.getElementById('us-lista');
+  if(!el) return;
+  if(usuarios.length===0){
+    el.innerHTML = '<div class="empty">Sin usuarios adicionales.</div>';
+    return;
+  }
+  el.innerHTML = usuarios.map(u=>{
+    const permisosTexto = u.esAdmin
+      ? 'Administrador · Acceso total'
+      : (PERMISOS_DISPONIBLES.filter(p => u.permisos && u.permisos[p.clave]).map(p=>p.label).join(', ') || 'Sin permisos asignados');
+    return `
+    <div class="prod-item" style="align-items:flex-start">
+      <div style="flex:1">
+        <div class="name">${u.nombre} <span style="color:var(--muted);font-weight:400;font-size:12px">(${u.usuario})</span> ${u.esAdmin?'<span class="badge listo">Admin</span>':''}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${permisosTexto}</div>
+      </div>
+      <button class="ghost" style="font-size:11px;padding:4px 8px" onclick="editarPermisosUsuario('${u.id}')">Editar</button>
+      <button class="small-danger" style="margin-left:6px" onclick="eliminarUsuario('${u.id}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function editarPermisosUsuario(id){
+  const u = usuarios.find(x=>x.id===id);
+  if(!u) return;
+  const checks = PERMISOS_DISPONIBLES.map(p => `
+    <label style="display:flex;align-items:center;gap:10px;margin:10px 0;cursor:pointer">
+      <input type="checkbox" id="edit-perm-${p.clave}" ${u.permisos && u.permisos[p.clave] ? 'checked' : ''} style="width:auto;accent-color:var(--accent);transform:scale(1.25)">
+      ${p.label}
+    </label>
+  `).join('');
+  abrirModal(`Permisos de ${u.nombre}`, `
+    <label style="display:flex;align-items:center;gap:10px;margin-bottom:14px;cursor:pointer;font-weight:700;color:var(--accent)">
+      <input type="checkbox" id="edit-admin" ${u.esAdmin?'checked':''} onchange="document.getElementById('edit-permisos-box').style.display=this.checked?'none':'block'" style="width:auto;accent-color:var(--accent);transform:scale(1.25)">
+      Administrador (acceso total)
+    </label>
+    <div id="edit-permisos-box" style="display:${u.esAdmin?'none':'block'}">${checks}</div>
+    <button class="primary" style="margin-top:14px;width:100%" onclick="guardarPermisosUsuario('${id}')">Guardar cambios</button>
+  `);
+}
+
+async function guardarPermisosUsuario(id){
+  const u = usuarios.find(x=>x.id===id);
+  if(!u) return;
+  const esAdmin = document.getElementById('edit-admin').checked;
+  u.esAdmin = esAdmin;
+  if(esAdmin){
+    u.permisos = permisosCompletos();
+  } else {
+    const permisos = {};
+    PERMISOS_DISPONIBLES.forEach(p => permisos[p.clave] = document.getElementById(`edit-perm-${p.clave}`).checked);
+    u.permisos = permisos;
+  }
+  await saveData('usuarios', usuarios);
+  cerrarAyuda();
+  renderUsuarios();
+  if(currentUser && currentUser.usuario===u.usuario){
+    currentUser.esAdmin = u.esAdmin;
+    currentUser.permisos = u.permisos;
+    aplicarPermisos();
+  }
+}
+
+async function eliminarUsuario(id){
+  if(!confirm('¿Eliminar este usuario? Ya no podrá iniciar sesión.')) return;
+  usuarios = usuarios.filter(x=>x.id!==id);
+  await saveData('usuarios', usuarios);
+  renderUsuarios();
+}
+
+// ---------- Navegación: menú + pantalla de inicio ----------
+function toggleMenu(){
+  const menu = document.getElementById('menu-bar');
+  const overlay = document.getElementById('menu-overlay');
+  const abrir = !menu.classList.contains('open');
+  menu.classList.toggle('open', abrir);
+  overlay.classList.toggle('open', abrir);
+}
+
+function cerrarMenu(){
+  document.getElementById('menu-bar').classList.remove('open');
+  document.getElementById('menu-overlay').classList.remove('open');
+}
+
+function irA(vista){
+  cerrarMenu(); // el menú se oculta automáticamente al seleccionar
+
+  if(vista !== 'home' && !tienePermiso(vista)){
+    alert('No tienes permiso para acceder a esta función.');
+    return;
+  }
+
+  document.getElementById('vista-home').classList.remove('active');
+  document.getElementById('vista-secciones').classList.remove('active');
+
+  if(vista === 'home'){
+    document.getElementById('vista-home').classList.add('active');
+    return;
+  }
+
+  document.getElementById('vista-secciones').classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  document.getElementById('tab-'+vista).classList.add('active');
+  if(vista === 'ajustes') irAjustes('home');
+  if(vista === 'kardex') renderKardex();
+  if(vista === 'caja') renderCaja();
+  if(vista === 'estadisticas') renderEstadisticas();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+// Sub-navegación dentro de Ajustes (accesos con iconos)
+function irAjustes(sub){
+  if((sub==='usuarios' || sub==='seguridad') && !(currentUser && currentUser.esAdmin)){
+    alert('Solo el administrador puede acceder a esta función.');
+    sub = 'home';
+  }
+  document.querySelectorAll('.aj-vista').forEach(v=>v.classList.remove('active'));
+  if(sub === 'home'){
+    document.getElementById('aj-home').classList.add('active');
+  } else {
+    document.getElementById('aj-sub-'+sub).classList.add('active');
+    if(sub === 'usuarios'){ renderFormPermisos(); renderUsuarios(); }
+    if(sub === 'recursos'){ renderListaRecursos(); }
+    if(sub === 'iconos'){ renderSelectorIconos(); }
+  }
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+// ---------- Base de datos local (IndexedDB) ----------
+let modoRed = false; // false = solo base de datos local de este dispositivo, true = además sincroniza en red
+
+let dbPromise = null;
+function abrirDB(){
+  if(dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve, reject)=>{
+    const req = indexedDB.open('taller_local_db', 1);
+    req.onupgradeneeded = (e)=>{
+      const db = e.target.result;
+      if(!db.objectStoreNames.contains('kv')){
+        db.createObjectStore('kv', {keyPath:'key'});
+      }
+    };
+    req.onsuccess = ()=> resolve(req.result);
+    req.onerror = ()=> reject(req.error);
+  });
+  return dbPromise;
+}
+
+async function dbGet(key){
+  try{
+    const db = await abrirDB();
+    return await new Promise((resolve, reject)=>{
+      const tx = db.transaction('kv','readonly');
+      const req = tx.objectStore('kv').get(key);
+      req.onsuccess = ()=> resolve(req.result ? req.result.value : undefined);
+      req.onerror = ()=> reject(req.error);
+    });
+  }catch(e){ console.error('Error leyendo base local', key, e); return undefined; }
+}
+
+async function dbSet(key, value){
+  try{
+    const db = await abrirDB();
+    return await new Promise((resolve, reject)=>{
+      const tx = db.transaction('kv','readwrite');
+      const req = tx.objectStore('kv').put({key, value});
+      req.onsuccess = ()=> resolve(true);
+      req.onerror = ()=> reject(req.error);
+    });
+  }catch(e){ console.error('Error guardando en base local', key, e); return false; }
+}
+
+// ---------- Storage helpers (cuenta + caché local sin conexión) ----------
+let archivoHandle = null; // FileSystemFileHandle del archivo de datos conectado (si hay uno)
+
+async function saveData(key, value){
+  await dbSet(key, value); // caché local: garantiza que funcione sin conexión
+  try{
+    // Se guarda ligado a tu cuenta (no al navegador), por eso persiste al cambiar de navegador o dispositivo
+    await window.storage.set(key, JSON.stringify(value), modoRed);
+  }catch(e){
+    console.error('No se pudo guardar en la cuenta, por ahora solo quedó en este navegador', key, e);
+  }
+  if(archivoHandle && ['ordenes','productos','ventas','kardex','ajustes','auth','usuarios','clientes','cajaSesiones'].includes(key)){
+    escribirArchivoDatos();
+  }
+  if(driveFileId && ['ordenes','productos','ventas','kardex','ajustes','auth','usuarios','clientes','cajaSesiones'].includes(key)){
+    escribirArchivoDrive();
+  }
+}
+
+async function loadData(key, fallback){
+  try{
+    const r = await window.storage.get(key, modoRed);
+    if(r){
+      const valor = JSON.parse(r.value);
+      await dbSet(key, valor); // refresca el caché local con lo último de la cuenta
+      return valor;
+    }
+  }catch(e){
+    console.error('No se pudo leer de la cuenta, se usa el caché local de este navegador', key, e);
+  }
+  const local = await dbGet(key);
+  return local !== undefined ? local : fallback;
+}
+
+// ---------- Archivo de datos en disco (sincroniza entre navegadores) ----------
+async function crearArchivoDatos(){
+  try{
+    if(!window.showSaveFilePicker){ alert('Tu navegador no soporta esta función. Usa Chrome, Edge, Brave u Opera.'); return; }
+    const handle = await window.showSaveFilePicker({
+      suggestedName: 'datos_taller.json',
+      types: [{ description: 'Archivo de datos del taller', accept: {'application/json': ['.json']} }]
+    });
+    archivoHandle = handle;
+    await dbSet('archivo_handle', handle);
+    await escribirArchivoDatos();
+    renderEstadoArchivo(true);
+  }catch(e){
+    if(e.name !== 'AbortError') alert('No se pudo crear el archivo: ' + e.message);
+  }
+}
+
+async function conectarArchivoExistente(){
+  try{
+    if(!window.showOpenFilePicker){ alert('Tu navegador no soporta esta función. Usa Chrome, Edge, Brave u Opera.'); return; }
+    const [handle] = await window.showOpenFilePicker({
+      types: [{ description: 'Archivo de datos del taller', accept: {'application/json': ['.json']} }]
+    });
+    const permiso = await handle.requestPermission({mode:'readwrite'});
+    if(permiso !== 'granted'){ alert('No se otorgó permiso de lectura y escritura sobre el archivo.'); return; }
+    archivoHandle = handle;
+    await dbSet('archivo_handle', handle);
+    await leerArchivoDatos();
+    alert('Archivo conectado. La página se recargará para aplicar los datos.');
+    location.reload();
+  }catch(e){
+    if(e.name !== 'AbortError') alert('No se pudo conectar el archivo: ' + e.message);
+  }
+}
+
+async function desconectarArchivoDatos(){
+  if(!confirm('¿Desconectar el archivo? Tus datos siguen guardados en tu cuenta y en el caché local; solo se deja de sincronizar con este archivo.')) return;
+  archivoHandle = null;
+  await dbSet('archivo_handle', null);
+  renderEstadoArchivo(false);
+}
+
+async function escribirArchivoDatos(){
+  if(!archivoHandle) return;
+  try{
+    const permiso = await archivoHandle.queryPermission({mode:'readwrite'});
+    if(permiso !== 'granted') return; // evita interrumpir un guardado automático con un permiso pendiente
+    const respaldo = {
+      version: 2,
+      fecha: new Date().toISOString(),
+      ordenes: await dbGet('ordenes') || [],
+      productos: await dbGet('productos') || [],
+      ventas: await dbGet('ventas') || [],
+      kardex: await dbGet('kardex') || [],
+      clientes: await dbGet('clientes') || [],
+      cajaSesiones: await dbGet('cajaSesiones') || [],
+      ajustes: await dbGet('ajustes') || {},
+      auth: await dbGet('auth') || {},
+      usuarios: await dbGet('usuarios') || []
+    };
+    const writable = await archivoHandle.createWritable();
+    await writable.write(JSON.stringify(respaldo, null, 2));
+    await writable.close();
+  }catch(e){ console.error('Error escribiendo el archivo de datos', e); }
+}
+
+async function leerArchivoDatos(){
+  if(!archivoHandle) return;
+  try{
+    const file = await archivoHandle.getFile();
+    const texto = await file.text();
+    if(!texto.trim()) return; // archivo recién creado, todavía vacío
+    const datos = JSON.parse(texto);
+    if(datos.ordenes) await saveData('ordenes', datos.ordenes);
+    if(datos.productos) await saveData('productos', datos.productos);
+    if(datos.ventas) await saveData('ventas', datos.ventas);
+    if(datos.kardex) await saveData('kardex', datos.kardex);
+      if(datos.clientes) await saveData('clientes', datos.clientes);
+      if(datos.cajaSesiones) await saveData('cajaSesiones', datos.cajaSesiones);
+    if(datos.ajustes) await saveData('ajustes', datos.ajustes);
+    if(datos.auth) await saveData('auth', datos.auth);
+    if(datos.usuarios) await saveData('usuarios', datos.usuarios);
+  }catch(e){ console.error('Error leyendo el archivo de datos', e); }
+}
+
+function renderEstadoArchivo(conectado){
+  const el = document.getElementById('df-estado');
+  const btnDesconectar = document.getElementById('df-btn-desconectar');
+  if(!el || !btnDesconectar) return;
+  if(conectado && archivoHandle){
+    el.textContent = '✓ Archivo conectado: ' + archivoHandle.name;
+    el.className = 'doc-estado ok';
+    btnDesconectar.style.display = 'inline-flex';
+  } else {
+    el.textContent = 'No hay ningún archivo conectado.';
+    el.className = 'doc-estado';
+    btnDesconectar.style.display = 'none';
+  }
+}
+
+async function intentarRecuperarArchivo(){
+  try{
+    const handle = await dbGet('archivo_handle');
+    if(!handle){ renderEstadoArchivo(false); return; }
+    const permiso = await handle.queryPermission({mode:'readwrite'});
+    if(permiso === 'granted'){
+      archivoHandle = handle;
+      renderEstadoArchivo(true);
+    } else {
+      // Los navegadores no permiten pedir el permiso sin una acción directa del usuario
+      const el = document.getElementById('df-estado');
+      if(el){ el.textContent = 'Había un archivo conectado, pero se perdió el permiso — vuelve a conectarlo.'; el.className = 'doc-estado error'; }
+    }
+  }catch(e){ renderEstadoArchivo(false); }
+}
+
+// ---------- GOOGLE DRIVE ----------
+let googleClientId = '';
+let driveFileId = '';
+let driveToken = null;      // token de acceso actual
+let driveTokenExp = 0;      // marca de tiempo (ms) en que expira
+let driveTokenClient = null;
+
+function cargarScriptGIS(){
+  return new Promise((resolve, reject)=>{
+    if(window.google && window.google.accounts && window.google.accounts.oauth2){ resolve(); return; }
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('No se pudo cargar la librería de Google.'));
+    document.head.appendChild(script);
+  });
+}
+
+async function guardarClientIdGoogle(){
+  const id = document.getElementById('gd-client-id').value.trim();
+  if(!id){ alert('Pega tu Client ID de Google.'); return; }
+  googleClientId = id;
+  await dbSet('google_client_id', id);
+  alert('Client ID guardado. Ahora pulsa "Conectar con Google Drive".');
+}
+
+// ---------- Ventana de ayuda (genérica) ----------
+function abrirModal(titulo, contenidoHtml){
+  document.getElementById('modal-ayuda-titulo').textContent = titulo;
+  document.getElementById('modal-ayuda-contenido').innerHTML = contenidoHtml;
+  document.getElementById('modal-ayuda-overlay').classList.add('visible');
+}
+
+function cerrarAyuda(){
+  document.getElementById('modal-ayuda-overlay').classList.remove('visible');
+}
+
+function abrirAyudaGoogle(){
+  abrirModal('Cómo obtener tu Client ID de Google', `
+    1. Ve a <strong>console.cloud.google.com</strong> y crea un proyecto.<br><br>
+    2. Habilita la <strong>Google Drive API</strong>.<br><br>
+    3. En "Credenciales", crea un <strong>ID de cliente de OAuth 2.0</strong> tipo "Aplicación web".<br><br>
+    4. En "Orígenes de JavaScript autorizados" agrega la dirección donde tengas alojada esta app (debe empezar con https:// — no funciona con un archivo abierto directo desde tu computadora).<br><br>
+    5. Copia el Client ID generado y pégalo en el campo de Ajustes.
+  `);
+}
+
+async function obtenerTokenDrive(interactivo){
+  await cargarScriptGIS();
+  if(!googleClientId){ throw new Error('Primero guarda tu Client ID de Google.'); }
+
+  return new Promise((resolve, reject)=>{
+    try{
+      driveTokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: googleClientId,
+        scope: 'https://www.googleapis.com/auth/drive',
+        callback: (respuesta) => {
+          if(respuesta.error){ reject(new Error(respuesta.error)); return; }
+          driveToken = respuesta.access_token;
+          driveTokenExp = Date.now() + (Number(respuesta.expires_in || 3500) * 1000);
+          resolve(driveToken);
+        }
+      });
+      driveTokenClient.requestAccessToken({ prompt: interactivo ? 'consent' : '' });
+    }catch(e){ reject(e); }
+  });
+}
+
+async function asegurarTokenDrive(){
+  if(driveToken && Date.now() < driveTokenExp - 60000) return driveToken;
+  return await obtenerTokenDrive(false).catch(()=> null);
+}
+
+async function conectarGoogleDrive(){
+  try{
+    if(!googleClientId){
+      const guardado = await dbGet('google_client_id');
+      if(guardado) googleClientId = guardado;
+    }
+    if(!googleClientId){ alert('Primero pega y guarda tu Client ID de Google.'); return; }
+    await obtenerTokenDrive(true);
+    renderEstadoDrive();
+    document.getElementById('gd-btn-crear').style.display = 'inline-flex';
+    document.getElementById('gd-btn-existente').style.display = 'inline-flex';
+    document.getElementById('gd-btn-desconectar').style.display = 'inline-flex';
+
+    const guardadoId = await dbGet('drive_file_id');
+    if(guardadoId){
+      driveFileId = guardadoId;
+      await leerArchivoDrive();
+    }
+    renderEstadoDrive();
+  }catch(e){
+    alert('No se pudo conectar con Google Drive: ' + e.message);
+  }
+}
+
+async function crearArchivoDrive(){
+  try{
+    const token = await asegurarTokenDrive();
+    if(!token){ alert('Tu sesión con Google expiró, vuelve a conectar.'); return; }
+
+    const metadata = { name: 'datos_taller.json', mimeType: 'application/json' };
+    const respaldo = await armarRespaldoCompleto();
+    const boundary = '-------tallerdrive';
+    const body =
+      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
+      `--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(respaldo, null, 2)}\r\n` +
+      `--${boundary}--`;
+
+    const resp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': `multipart/related; boundary=${boundary}` },
+      body
+    });
+    if(!resp.ok) throw new Error('Google Drive rechazó la solicitud.');
+    const data = await resp.json();
+    driveFileId = data.id;
+    await dbSet('drive_file_id', driveFileId);
+    renderEstadoDrive();
+    alert('Archivo creado en tu Google Drive.');
+  }catch(e){
+    alert('No se pudo crear el archivo en Drive: ' + e.message);
+  }
+}
+
+async function conectarArchivoDriveExistente(){
+  const entrada = prompt('Pega el ID del archivo de Google Drive, o el enlace completo para compartirlo:');
+  if(!entrada) return;
+  const match = entrada.match(/[-\w]{25,}/);
+  const id = match ? match[0] : entrada.trim();
+
+  try{
+    const token = await asegurarTokenDrive();
+    if(!token){ alert('Tu sesión con Google expiró, vuelve a conectar.'); return; }
+    const resp = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?fields=id,name`, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if(!resp.ok) throw new Error('No se encontró el archivo o no tienes acceso a él.');
+    driveFileId = id;
+    await dbSet('drive_file_id', driveFileId);
+    await leerArchivoDrive();
+    renderEstadoDrive();
+    alert('Archivo conectado. La página se recargará para aplicar los datos.');
+    location.reload();
+  }catch(e){
+    alert('No se pudo conectar el archivo: ' + e.message);
+  }
+}
+
+async function desconectarGoogleDrive(){
+  if(!confirm('¿Desconectar Google Drive? Tus datos siguen en tu cuenta y en el caché local; solo se deja de sincronizar con Drive.')) return;
+  driveFileId = '';
+  driveToken = null;
+  await dbSet('drive_file_id', null);
+  renderEstadoDrive();
+  document.getElementById('gd-btn-crear').style.display = 'none';
+  document.getElementById('gd-btn-existente').style.display = 'none';
+  document.getElementById('gd-btn-desconectar').style.display = 'none';
+}
+
+async function armarRespaldoCompleto(){
+  return {
+    version: 2,
+    fecha: new Date().toISOString(),
+    ordenes: await dbGet('ordenes') || [],
+    productos: await dbGet('productos') || [],
+    ventas: await dbGet('ventas') || [],
+    kardex: await dbGet('kardex') || [],
+      clientes: await dbGet('clientes') || [],
+      cajaSesiones: await dbGet('cajaSesiones') || [],
+    ajustes: await dbGet('ajustes') || {},
+    auth: await dbGet('auth') || {},
+    usuarios: await dbGet('usuarios') || []
+  };
+}
+
+async function escribirArchivoDrive(){
+  if(!driveFileId) return;
+  try{
+    const token = await asegurarTokenDrive();
+    if(!token) return; // se sincronizará la próxima vez que haya sesión activa
+    const respaldo = await armarRespaldoCompleto();
+    await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`, {
+      method: 'PATCH',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(respaldo, null, 2)
+    });
+  }catch(e){ console.error('Error sincronizando con Google Drive', e); }
+}
+
+async function leerArchivoDrive(){
+  if(!driveFileId) return;
+  try{
+    const token = await asegurarTokenDrive();
+    if(!token) return;
+    const resp = await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if(!resp.ok) return;
+    const texto = await resp.text();
+    if(!texto.trim()) return;
+    const datos = JSON.parse(texto);
+    if(datos.ordenes) await saveData('ordenes', datos.ordenes);
+    if(datos.productos) await saveData('productos', datos.productos);
+    if(datos.ventas) await saveData('ventas', datos.ventas);
+    if(datos.kardex) await saveData('kardex', datos.kardex);
+      if(datos.clientes) await saveData('clientes', datos.clientes);
+      if(datos.cajaSesiones) await saveData('cajaSesiones', datos.cajaSesiones);
+    if(datos.ajustes) await saveData('ajustes', datos.ajustes);
+    if(datos.auth) await saveData('auth', datos.auth);
+    if(datos.usuarios) await saveData('usuarios', datos.usuarios);
+  }catch(e){ console.error('Error leyendo desde Google Drive', e); }
+}
+
+function renderEstadoDrive(){
+  const el = document.getElementById('gd-estado');
+  if(!el) return;
+  if(driveFileId && driveToken){
+    el.textContent = '✓ Conectado a Google Drive (archivo activo)';
+    el.className = 'doc-estado ok';
+  } else if(driveToken){
+    el.textContent = 'Conectado a Google, aún sin archivo asignado — crea uno o conecta uno existente.';
+    el.className = 'doc-estado loading';
+  } else {
+    el.textContent = 'No conectado a Google Drive.';
+    el.className = 'doc-estado';
+  }
+}
+
+async function intentarRecuperarGoogleDrive(){
+  const id = await dbGet('google_client_id');
+  if(id){
+    googleClientId = id;
+    document.getElementById('gd-client-id').value = id;
+  }
+  const archivo = await dbGet('drive_file_id');
+  if(archivo) driveFileId = archivo;
+  renderEstadoDrive();
+}
+
+async function init(){
+  ordenes = await loadData('ordenes', []);
+  productos = await loadData('productos', []);
+  clientes = await loadData('clientes', []);
+  cajaSesiones = await loadData('cajaSesiones', []);
+  ajustes = await loadData('ajustes', ajustes);
+  usuarios = await loadData('usuarios', usuarios);
+  renderOrdenes();
+  renderCatalogo();
+  renderClientes();
+  renderCaja();
+  cargarFormAjustes();
+  renderLogoPreview();
+  renderPreviewTicket();
+  aplicarColores();
+  aplicarTema();
+  aplicarEstiloTicket();
+  aplicarIconosPersonalizados();
+  aplicarPermisos();
+  document.getElementById('aj-usuario').value = auth.usuario;
+  document.getElementById('dt-modo-red').checked = modoRed;
+  intentarRecuperarArchivo();
+  intentarRecuperarGoogleDrive();
+  renderKardex();
+}
+
+// ---------- AJUSTES ----------
+function cargarFormAjustes(){
+  document.getElementById('aj-nombre').value = ajustes.nombre || '';
+  document.getElementById('aj-direccion').value = ajustes.direccion || '';
+  document.getElementById('aj-telefono').value = ajustes.telefono || '';
+  document.getElementById('aj-ruc').value = ajustes.ruc || '';
+  document.getElementById('aj-mensaje').value = ajustes.mensaje || '';
+  document.getElementById('aj-whatsapp').value = ajustes.whatsapp || plantillaWhatsAppPorDefecto();
+  document.getElementById('aj-color-principal').value = ajustes.colorPrincipal || '#FF6A00';
+  document.getElementById('aj-color-secundario').value = ajustes.colorSecundario || '#00D9B5';
+  document.getElementById('aj-tema').value = ajustes.tema || 'sistema';
+  actualizarHexColores();
+  cargarFormImpresion();
+}
+
+// ---------- EDICIÓN DE IMPRESIÓN ----------
+function impresionPorDefecto(){
+  return { anchoDefecto:'58', fontSizeTicket:11, bcFormato:'CODE128', bcAlto:42, bcGrosor:1.6, bcNumero:true };
+}
+
+function cargarFormImpresion(){
+  const imp = ajustes.impresion || impresionPorDefecto();
+  document.getElementById('imp-ancho-defecto').value = imp.anchoDefecto || '58';
+  document.getElementById('imp-fuente-ticket').value = imp.fontSizeTicket || 11;
+  document.getElementById('imp-bc-formato').value = imp.bcFormato || 'CODE128';
+  document.getElementById('imp-bc-alto').value = imp.bcAlto || 42;
+  document.getElementById('imp-bc-grosor').value = imp.bcGrosor || 1.6;
+  document.getElementById('imp-bc-numero').checked = imp.bcNumero !== false;
+  previsualizarImpresion();
+}
+
+function leerFormImpresion(){
+  return {
+    anchoDefecto: document.getElementById('imp-ancho-defecto').value,
+    fontSizeTicket: parseInt(document.getElementById('imp-fuente-ticket').value) || 11,
+    bcFormato: document.getElementById('imp-bc-formato').value,
+    bcAlto: parseInt(document.getElementById('imp-bc-alto').value) || 42,
+    bcGrosor: parseFloat(document.getElementById('imp-bc-grosor').value) || 1.6,
+    bcNumero: document.getElementById('imp-bc-numero').checked
+  };
+}
+
+function aplicarEstiloTicket(){
+  const imp = ajustes.impresion || impresionPorDefecto();
+  document.documentElement.style.setProperty('--ticket-font-size', (imp.fontSizeTicket || 11) + 'px');
+  // Preselecciona el ancho por defecto en los selectores de ticket ya presentes en pantalla
+  const selPos = document.getElementById('pv-ancho');
+  if(selPos) selPos.value = imp.anchoDefecto || '58';
+}
+
+function previsualizarImpresion(){
+  const imp = leerFormImpresion();
+  const preview = document.getElementById('imp-preview');
+  if(!preview) return;
+  preview.innerHTML = `
+    <div class="ticket" style="width:${imp.anchoDefecto}mm;font-size:${imp.fontSizeTicket}px">
+      <h3>EJEMPLO DE TICKET</h3>
+      <div class="line"><span>1 x Producto demo</span><span>S/ 10.00</span></div>
+      <hr>
+      <div class="line tot"><span>TOTAL</span><span>S/ 10.00</span></div>
+      <hr>
+      <div class="center"><svg id="imp-preview-bc"></svg></div>
+    </div>`;
+  try{
+    JsBarcode('#imp-preview-bc', imp.bcFormato==='EAN13' ? '7501234567895' : 'DEMO123', {
+      format: imp.bcFormato,
+      width: imp.bcGrosor,
+      height: imp.bcAlto,
+      displayValue: imp.bcNumero,
+      fontSize: 11,
+      margin: 4
+    });
+  }catch(e){
+    document.getElementById('imp-preview-bc').outerHTML = '<div style="font-size:11px;color:#c00">Ese formato no admite este texto de ejemplo, pero funcionará con el código real de tu producto.</div>';
+  }
+}
+
+async function guardarImpresion(){
+  ajustes.impresion = leerFormImpresion();
+  await saveData('ajustes', ajustes);
+  aplicarEstiloTicket();
+  alert('Estilos de impresión guardados.');
+}
+
+async function restablecerImpresion(){
+  ajustes.impresion = impresionPorDefecto();
+  await saveData('ajustes', ajustes);
+  cargarFormImpresion();
+  aplicarEstiloTicket();
+}
+
+// ---------- TEMA (claro / oscuro / sistema) ----------
+function aplicarTema(){
+  const preferencia = ajustes.tema || 'sistema';
+  let efectivo = preferencia;
+  if(efectivo === 'sistema'){
+    efectivo = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'oscuro' : 'claro';
+  }
+  document.documentElement.setAttribute('data-theme', efectivo === 'claro' ? 'light' : 'dark');
+}
+
+async function cambiarTema(){
+  ajustes.tema = document.getElementById('aj-tema').value;
+  await saveData('ajustes', ajustes);
+  aplicarTema();
+}
+
+if(window.matchMedia){
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if((ajustes.tema || 'sistema') === 'sistema') aplicarTema();
+  });
+}
+
+// ---------- APARIENCIA (colores) ----------
+// ---------- ICONOS PERSONALIZABLES ----------
+const ICONOS_DISPONIBLES = {
+  clipboard: '<rect x="6" y="4" width="12" height="16" rx="2"/><path d="M9 2h6a1 1 0 0 1 1 1v2H8V3a1 1 0 0 1 1-1z"/><path d="M9 11h6M9 15h4"/>',
+  cart: '<circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/><path d="M2 3h2l2.6 12.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L21 7H6"/>',
+  box: '<path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/>',
+  chart: '<path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/>',
+  users: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/>',
+  cash: '<rect x="2" y="6" width="20" height="14" rx="2"/><circle cx="12" cy="13" r="3"/><path d="M6 6V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  home: '<path d="M3 12l9-9 9 9"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/>',
+  star: '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z"/>',
+  bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+  tag: '<path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3.24L4 3v5.59a2 2 0 0 0 .59 1.41l9.58 9.59a2 2 0 0 0 2.83 0l3.59-3.59a2 2 0 0 0 0-2.83z"/><circle cx="7.5" cy="7.5" r="1"/>',
+  calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  wrench: '<path d="M14.7 6.3a4 4 0 0 0-5.7 5.7L3 18v3h3l6-6a4 4 0 0 0 5.7-5.7l-2.5 2.5-2-2z"/>',
+  mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6 12 13 2 6"/>',
+  bolt: '<path d="M13 2 3 14h7l-1 8 10-12h-7z"/>',
+  folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  archive: '<rect x="2" y="4" width="20" height="5" rx="1"/><path d="M4 9v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9"/><path d="M10 13h4"/>',
+  building: '<rect x="4" y="2" width="16" height="20" rx="1"/><path d="M9 22v-4h6v4M9 6h1M14 6h1M9 10h1M14 10h1M9 14h1M14 14h1"/>',
+  lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  database: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+  download: '<path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/>',
+  printer: '<path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="9" rx="2"/><path d="M6 18h12v4H6z"/><path d="M7 12h1"/>',
+  palette: '<circle cx="13.5" cy="6.5" r=".6" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".6" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".6" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".6" fill="currentColor"/><path d="M12 2a10 10 0 0 0 0 20c1 0 2-.5 2-2 0-.5-.2-1-.5-1.4-.3-.4-.5-.9-.5-1.4 0-1.1.9-2 2-2h2.3c1.5 0 2.7-1.2 2.7-2.7C20 6.9 16.5 2 12 2z"/>',
+  message: '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>',
+  grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>'
+};
+
+const SECCIONES_ICONO = [
+  {clave:'home', label:'Inicio', porDefecto:'home'},
+  {clave:'ordenes', label:'Órdenes de Trabajo', porDefecto:'clipboard'},
+  {clave:'clientes', label:'Clientes', porDefecto:'users'},
+  {clave:'pos', label:'Punto de Venta', porDefecto:'cart'},
+  {clave:'caja', label:'Caja', porDefecto:'cash'},
+  {clave:'kardex', label:'Productos', porDefecto:'box'},
+  {clave:'estadisticas', label:'Estadísticas', porDefecto:'chart'},
+  {clave:'ajustes', label:'Ajustes', porDefecto:'gear'},
+  {clave:'aj-empresa', label:'Ajustes · Datos de la Empresa', porDefecto:'building'},
+  {clave:'aj-seguridad', label:'Ajustes · Seguridad', porDefecto:'lock'},
+  {clave:'aj-usuarios', label:'Ajustes · Usuarios', porDefecto:'users'},
+  {clave:'aj-whatsapp', label:'Ajustes · Mensaje de WhatsApp', porDefecto:'message'},
+  {clave:'aj-apariencia', label:'Ajustes · Apariencia', porDefecto:'palette'},
+  {clave:'aj-datos', label:'Ajustes · Copia de Seguridad', porDefecto:'database'},
+  {clave:'aj-impresion', label:'Ajustes · Edición de Impresión', porDefecto:'printer'},
+  {clave:'aj-recursos', label:'Ajustes · Descargar Recursos', porDefecto:'download'},
+  {clave:'aj-iconos', label:'Ajustes · Iconos', porDefecto:'grid'}
+];
+
+function iconoPorDefecto(clave){
+  const s = SECCIONES_ICONO.find(x=>x.clave===clave);
+  return s ? s.porDefecto : 'clipboard';
+}
+
+function svgIcono(id){
+  const paths = ICONOS_DISPONIBLES[id] || ICONOS_DISPONIBLES.clipboard;
+  return `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+}
+
+function aplicarIconosPersonalizados(){
+  document.querySelectorAll('[data-icono]').forEach(el=>{
+    const clave = el.getAttribute('data-icono');
+    const elegido = (ajustes.iconos && ajustes.iconos[clave]) || iconoPorDefecto(clave);
+    el.innerHTML = svgIcono(elegido);
+  });
+}
+
+function renderSelectorIconos(){
+  const el = document.getElementById('icon-selector-lista');
+  if(!el) return;
+  el.innerHTML = SECCIONES_ICONO.map(sec=>{
+    const actual = (ajustes.iconos && ajustes.iconos[sec.clave]) || sec.porDefecto;
+    return `
+      <div class="icon-selector-fila">
+        <div class="icon-selector-fila-info">
+          <span class="icon-opcion activo icon-preview">${svgIcono(actual)}</span>
+          <div class="icon-selector-label">${sec.label}</div>
+        </div>
+        <button class="ghost" onclick="abrirSelectorIconoSeccion('${sec.clave}')">Cambiar ícono</button>
+      </div>`;
+  }).join('');
+}
+
+function abrirSelectorIconoSeccion(seccionClave){
+  const sec = SECCIONES_ICONO.find(s=>s.clave===seccionClave);
+  if(!sec) return;
+  const actual = (ajustes.iconos && ajustes.iconos[seccionClave]) || sec.porDefecto;
+  abrirModal(`Ícono: ${sec.label}`, `
+    <div class="icon-selector-opciones">
+      ${Object.keys(ICONOS_DISPONIBLES).map(id => `
+        <button class="icon-opcion ${id===actual?'activo':''}" title="${id}" onclick="elegirIcono('${seccionClave}','${id}')">${svgIcono(id)}</button>
+      `).join('')}
+    </div>
+  `);
+}
+
+async function elegirIcono(seccionClave, iconoId){
+  if(!ajustes.iconos) ajustes.iconos = {};
+  ajustes.iconos[seccionClave] = iconoId;
+  await saveData('ajustes', ajustes);
+  aplicarIconosPersonalizados();
+  renderSelectorIconos();
+  cerrarAyuda();
+}
+
+async function restablecerIconos(){
+  if(!confirm('¿Restablecer todos los iconos a los valores originales?')) return;
+  ajustes.iconos = {};
+  await saveData('ajustes', ajustes);
+  aplicarIconosPersonalizados();
+  renderSelectorIconos();
+}
+
+function aplicarColores(){
+  document.documentElement.style.setProperty('--accent', ajustes.colorPrincipal || '#FF6A00');
+  document.documentElement.style.setProperty('--accent2', ajustes.colorSecundario || '#00D9B5');
+}
+
+function actualizarHexColores(){
+  document.getElementById('aj-color-principal-hex').textContent = document.getElementById('aj-color-principal').value;
+  document.getElementById('aj-color-secundario-hex').textContent = document.getElementById('aj-color-secundario').value;
+}
+
+function previsualizarColores(){
+  actualizarHexColores();
+  document.documentElement.style.setProperty('--accent', document.getElementById('aj-color-principal').value);
+  document.documentElement.style.setProperty('--accent2', document.getElementById('aj-color-secundario').value);
+}
+
+async function guardarColores(){
+  ajustes.colorPrincipal = document.getElementById('aj-color-principal').value;
+  ajustes.colorSecundario = document.getElementById('aj-color-secundario').value;
+  await saveData('ajustes', ajustes);
+  aplicarColores();
+  alert('Colores guardados.');
+}
+
+async function restablecerColores(){
+  ajustes.colorPrincipal = '#FF6A00';
+  ajustes.colorSecundario = '#00D9B5';
+  document.getElementById('aj-color-principal').value = ajustes.colorPrincipal;
+  document.getElementById('aj-color-secundario').value = ajustes.colorSecundario;
+  actualizarHexColores();
+  await saveData('ajustes', ajustes);
+  aplicarColores();
+}
+
+// ---------- COPIA DE SEGURIDAD Y RED ----------
+async function crearCopiaSeguridad(){
+  const respaldo = {
+    version: 2,
+    fecha: new Date().toISOString(),
+    ordenes: await loadData('ordenes', []),
+    productos: await loadData('productos', []),
+    ventas: await loadData('ventas', []),
+    kardex: await loadData('kardex', []),
+    clientes: await loadData('clientes', []),
+    cajaSesiones: await loadData('cajaSesiones', []),
+    ajustes: await loadData('ajustes', ajustes),
+    auth: await loadData('auth', auth),
+    usuarios: await loadData('usuarios', [])
+  };
+  const blob = new Blob([JSON.stringify(respaldo, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `copia_seguridad_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function restaurarCopiaSeguridad(ev){
+  const file = ev.target.files[0];
+  if(!file) return;
+  document.getElementById('dt-restaurar-nombre').textContent = file.name;
+
+  const confirmar = confirm('Esto reemplazará todos los datos actuales (órdenes, productos, ventas, kardex, ajustes y usuarios) por los del archivo. ¿Continuar?');
+  if(!confirmar){ ev.target.value=''; document.getElementById('dt-restaurar-nombre').textContent='Ningún archivo seleccionado'; return; }
+
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try{
+      const datos = JSON.parse(reader.result);
+      if(datos.ordenes) await saveData('ordenes', datos.ordenes);
+      if(datos.productos) await saveData('productos', datos.productos);
+      if(datos.ventas) await saveData('ventas', datos.ventas);
+      if(datos.kardex) await saveData('kardex', datos.kardex);
+      if(datos.clientes) await saveData('clientes', datos.clientes);
+      if(datos.cajaSesiones) await saveData('cajaSesiones', datos.cajaSesiones);
+      if(datos.ajustes) await saveData('ajustes', datos.ajustes);
+      if(datos.auth) await saveData('auth', datos.auth);
+      if(datos.usuarios) await saveData('usuarios', datos.usuarios);
+      alert('Copia restaurada correctamente. La página se recargará.');
+      location.reload();
+    }catch(err){
+      alert('El archivo no es una copia de seguridad válida.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+async function cambiarModoRed(activo){
+  const confirmar = confirm(activo
+    ? 'Al activarlo, este dispositivo empezará a usar los datos compartidos en red (visibles para todos los dispositivos que abran este mismo enlace). ¿Continuar?'
+    : 'Al desactivarlo, este dispositivo volverá a usar solo sus propios datos locales. ¿Continuar?');
+  if(!confirmar){
+    document.getElementById('dt-modo-red').checked = modoRed;
+    return;
+  }
+  await guardarModoRed(activo);
+  alert('Se recargarán los datos con el nuevo modo.');
+  location.reload();
+}
+
+function plantillaWhatsAppPorDefecto(){
+  return 'Hola {cliente}, le escribimos de {negocio} sobre su orden {orden} ({equipo}).\n\nSu orden {estado}.\n\nCotización: S/ {cotizacion}\nAdelanto: S/ {adelanto}\nResto a pagar: S/ {resto}\n\nFecha de entrega estimada: {fecha}\n\n¡Gracias por su preferencia!';
+}
+
+function subirLogo(ev){
+  const file = ev.target.files[0];
+  if(!file) return;
+  if(file.size > 2*1024*1024){
+    alert('La imagen es muy pesada. Usa un logo menor a 2MB.');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    ajustes.logo = reader.result;
+    renderLogoPreview();
+    renderPreviewTicket();
+    renderLoginBranding();
+  };
+  reader.readAsDataURL(file);
+}
+
+function quitarLogo(){
+  ajustes.logo = '';
+  document.getElementById('aj-logo-input').value = '';
+  renderLogoPreview();
+  renderPreviewTicket();
+  renderLoginBranding();
+}
+
+function renderLogoPreview(){
+  const el = document.getElementById('aj-logo-preview');
+  el.innerHTML = ajustes.logo
+    ? `<img src="${ajustes.logo}" alt="Logo">`
+    : `<span class="no-logo">Sin logo</span>`;
+}
+
+async function guardarAjustes(){
+  ajustes.nombre = document.getElementById('aj-nombre').value.trim();
+  ajustes.direccion = document.getElementById('aj-direccion').value.trim();
+  ajustes.telefono = document.getElementById('aj-telefono').value.trim();
+  ajustes.ruc = document.getElementById('aj-ruc').value.trim();
+  ajustes.mensaje = document.getElementById('aj-mensaje').value.trim();
+  await saveData('ajustes', ajustes);
+  renderPreviewTicket();
+  renderLoginBranding();
+  alert('Ajustes guardados.');
+}
+
+async function guardarMensajeWhatsApp(){
+  ajustes.whatsapp = document.getElementById('aj-whatsapp').value.trim();
+  await saveData('ajustes', ajustes);
+  alert('Mensaje de WhatsApp guardado.');
+}
+
+// Encabezado y pie reutilizables para todos los tickets
+function ticketHeader(){
+  let html = '';
+  if(ajustes.logo) html += `<img class="logo" src="${ajustes.logo}" alt="Logo">`;
+  if(ajustes.nombre) html += `<div class="center" style="font-weight:700;font-size:13px">${ajustes.nombre}</div>`;
+  if(ajustes.direccion) html += `<div class="center">${ajustes.direccion}</div>`;
+  if(ajustes.telefono) html += `<div class="center">Tel: ${ajustes.telefono}</div>`;
+  if(ajustes.ruc) html += `<div class="center">RUC/DNI: ${ajustes.ruc}</div>`;
+  if(html) html += '<hr>';
+  return html;
+}
+function ticketFooter(){
+  return ajustes.mensaje ? `<hr><div class="center">${ajustes.mensaje}</div>` : '';
+}
+
+function renderPreviewTicket(){
+  const html = `
+    <div class="ticket" style="width:80mm">
+      ${ticketHeader()}
+      <h3>EJEMPLO DE TICKET</h3>
+      <div class="line"><span>1 x Producto demo</span><span>S/ 10.00</span></div>
+      <hr>
+      <div class="line tot"><span>TOTAL</span><span>S/ 10.00</span></div>
+      ${ticketFooter()}
+    </div>`;
+  document.getElementById('aj-preview').innerHTML = html;
+}
+
+// ---------- CLIENTES ----------
+function normalizarTexto(t){
+  return (t||'').toString().trim().toLowerCase();
+}
+
+// Crea o actualiza un cliente automáticamente cuando se registra una orden o una venta,
+// para que la base de datos de clientes crezca sola sin trabajo extra
+async function upsertCliente({nombre, telefono, docTipo, docNumero}){
+  nombre = (nombre||'').trim();
+  telefono = (telefono||'').trim();
+  docNumero = (docNumero||'').trim();
+  if(!nombre) return null;
+
+  let existente = null;
+  if(docNumero) existente = clientes.find(c => normalizarTexto(c.docNumero)===normalizarTexto(docNumero) && c.docNumero);
+  if(!existente && telefono) existente = clientes.find(c => normalizarTexto(c.telefono)===normalizarTexto(telefono) && c.telefono);
+  if(!existente) existente = clientes.find(c => normalizarTexto(c.nombre)===normalizarTexto(nombre));
+
+  if(existente){
+    existente.nombre = nombre || existente.nombre;
+    if(telefono) existente.telefono = telefono;
+    if(docTipo) existente.docTipo = docTipo;
+    if(docNumero) existente.docNumero = docNumero;
+    existente.ultimaActividad = new Date().toLocaleString('es-PE');
+  } else {
+    existente = {
+      id: 'C'+Date.now(),
+      nombre, telefono, docTipo: docTipo||'dni', docNumero,
+      direccion:'', notas:'',
+      creado: new Date().toLocaleString('es-PE'),
+      ultimaActividad: new Date().toLocaleString('es-PE')
+    };
+    clientes.unshift(existente);
+  }
+  await saveData('clientes', clientes);
+  renderClientes();
+  return existente;
+}
+
+async function guardarCliente(){
+  const id = document.getElementById('cli-editando-id').value;
+  const nombre = document.getElementById('cli-nombre').value.trim();
+  const telefono = document.getElementById('cli-telefono').value.trim();
+  const docTipo = document.getElementById('cli-doc-tipo').value;
+  const docNumero = document.getElementById('cli-doc-numero').value.trim();
+  const direccion = document.getElementById('cli-direccion').value.trim();
+  const notas = document.getElementById('cli-notas').value.trim();
+
+  if(!nombre){ alert('Ingresa al menos el nombre del cliente.'); return; }
+
+  if(id){
+    const c = clientes.find(x=>x.id===id);
+    if(!c){ alert('Cliente no encontrado.'); return; }
+    c.nombre = nombre; c.telefono = telefono; c.docTipo = docTipo; c.docNumero = docNumero;
+    c.direccion = direccion; c.notas = notas;
+  } else {
+    clientes.unshift({
+      id: 'C'+Date.now(), nombre, telefono, docTipo, docNumero, direccion, notas,
+      creado: new Date().toLocaleString('es-PE'), ultimaActividad: new Date().toLocaleString('es-PE')
+    });
+  }
+  await saveData('clientes', clientes);
+  cancelarEdicionCliente();
+  renderClientes();
+}
+
+function editarCliente(id){
+  const c = clientes.find(x=>x.id===id);
+  if(!c) return;
+  document.getElementById('cli-form-titulo').textContent = 'Editar cliente';
+  document.getElementById('cli-editando-id').value = c.id;
+  document.getElementById('cli-nombre').value = c.nombre || '';
+  document.getElementById('cli-telefono').value = c.telefono || '';
+  document.getElementById('cli-doc-tipo').value = c.docTipo || 'dni';
+  document.getElementById('cli-doc-numero').value = c.docNumero || '';
+  document.getElementById('cli-direccion').value = c.direccion || '';
+  document.getElementById('cli-notas').value = c.notas || '';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function cancelarEdicionCliente(){
+  document.getElementById('cli-form-titulo').textContent = 'Agregar cliente';
+  document.getElementById('cli-editando-id').value = '';
+  ['cli-nombre','cli-telefono','cli-doc-numero','cli-direccion','cli-notas'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('cli-doc-tipo').value = 'dni';
+}
+
+async function eliminarCliente(id){
+  const c = clientes.find(x=>x.id===id);
+  if(!c) return;
+  if(!confirm(`¿Eliminar al cliente "${c.nombre}"? Esto no borra sus órdenes ni ventas ya registradas.`)) return;
+  clientes = clientes.filter(x=>x.id!==id);
+  await saveData('clientes', clientes);
+  renderClientes();
+}
+
+function verClienteDetalle(id){
+  const c = clientes.find(x=>x.id===id);
+  if(!c) return;
+  const ordenesCliente = ordenes.filter(o => normalizarTexto(o.cliente)===normalizarTexto(c.nombre) || (c.telefono && o.telefono===c.telefono));
+  const filasOrdenes = ordenesCliente.map(o=>`<div class="line"><span>${o.id} · ${o.equipo}</span><span>${o.estado}</span></div>`).join('') || '<div style="color:var(--muted);font-size:12px">Sin órdenes registradas.</div>';
+  abrirModal(`Cliente: ${c.nombre}`, `
+    <div style="font-size:13px;line-height:1.7">
+      ${c.telefono ? `<div><strong>Teléfono:</strong> ${c.telefono}</div>` : ''}
+      ${c.docNumero ? `<div><strong>${(c.docTipo||'doc').toUpperCase()}:</strong> ${c.docNumero}</div>` : ''}
+      ${c.direccion ? `<div><strong>Dirección:</strong> ${c.direccion}</div>` : ''}
+      ${c.notas ? `<div><strong>Notas:</strong> ${c.notas}</div>` : ''}
+      <div style="color:var(--muted);font-size:11px;margin-top:6px">Cliente desde: ${c.creado||'-'}</div>
+      <hr style="border-color:var(--line);margin:12px 0">
+      <div style="font-weight:700;margin-bottom:6px">Órdenes de trabajo</div>
+      ${filasOrdenes}
+    </div>
+  `);
+}
+
+function construirTablaClientes(filtro){
+  filtro = normalizarTexto(filtro);
+  const lista = clientes.filter(c =>
+    !filtro ||
+    normalizarTexto(c.nombre).includes(filtro) ||
+    normalizarTexto(c.telefono).includes(filtro) ||
+    normalizarTexto(c.docNumero).includes(filtro)
+  );
+
+  if(clientes.length===0) return '<div class="empty">Sin clientes registrados.</div>';
+  if(lista.length===0) return '<div class="empty">Ningún cliente coincide con la búsqueda.</div>';
+
+  return `<div class="table-scroll" id="cli-tabla-scroll"><table><thead><tr><th>Nombre</th><th>Teléfono</th><th>Documento</th><th></th></tr></thead><tbody>` +
+    lista.map(c => `<tr>
+      <td data-label="Nombre" style="cursor:pointer" onclick="verClienteDetalle('${c.id}')">${c.nombre}</td>
+      <td data-label="Teléfono">${c.telefono || '-'}</td>
+      <td data-label="Documento" style="font-size:12px;color:var(--muted)">${c.docNumero ? (c.docTipo||'').toUpperCase()+' '+c.docNumero : '-'}</td>
+      <td data-label="">
+        <div class="fila-acciones">
+          <button class="ghost" style="font-size:11px;padding:4px 8px" onclick="verClienteDetalle('${c.id}')">Ver</button>
+          <button class="icon-btn" title="Editar cliente" onclick="editarCliente('${c.id}')">✏️</button>
+          <button class="small-danger" style="font-size:11px;padding:4px 8px" onclick="eliminarCliente('${c.id}')">Eliminar</button>
+        </div>
+      </td>
+    </tr>`).join('') + '</tbody></table></div>';
+}
+
+function abrirVentanaClientes(){
+  abrirModal(`Clientes (${clientes.length})`, `
+    <input id="modal-cli-buscar" placeholder="Buscar por nombre, teléfono o documento..." oninput="filtrarVentanaClientes(this.value)" style="width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:9px 10px;border-radius:6px;font-size:14px;margin-bottom:14px">
+    <div id="modal-cli-tabla">${construirTablaClientes()}</div>
+  `);
+}
+
+function filtrarVentanaClientes(valor){
+  const el = document.getElementById('modal-cli-tabla');
+  if(el) el.innerHTML = construirTablaClientes(valor);
+}
+
+function renderClientes(){
+  const el = document.getElementById('cli-resumen');
+  if(!el) return;
+  if(clientes.length===0){ el.innerHTML = '<div class="empty">Sin clientes registrados.</div>'; return; }
+
+  const conTelefono = clientes.filter(c => c.telefono).length;
+  const recientes = clientes.slice(0,3);
+
+  el.innerHTML = `
+    <div class="inv-resumen" style="grid-template-columns:repeat(2,1fr)">
+      <div class="inv-resumen-item">
+        <div class="inv-resumen-valor">${clientes.length}</div>
+        <div class="inv-resumen-label">Total de clientes</div>
+      </div>
+      <div class="inv-resumen-item">
+        <div class="inv-resumen-valor">${conTelefono}</div>
+        <div class="inv-resumen-label">Con teléfono</div>
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      ${recientes.map(c=>`
+        <div class="linea-resumen">
+          <span>${c.nombre}</span>
+          <span style="color:var(--muted);font-size:12px">${c.telefono || c.docNumero || ''}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function exportarClientesExcel(){
+  if(clientes.length===0){ alert('No hay clientes para exportar.'); return; }
+  if(typeof XLSX === 'undefined'){ alert('No se pudo cargar la librería de Excel. Verifica tu conexión a internet e intenta de nuevo.'); return; }
+  const filas = clientes.map(c=>({
+    'Nombre': c.nombre,
+    'Teléfono': c.telefono || '',
+    'Tipo doc.': (c.docTipo||'').toUpperCase(),
+    'N° Documento': c.docNumero || '',
+    'Dirección': c.direccion || '',
+    'Notas': c.notas || '',
+    'Cliente desde': c.creado || ''
+  }));
+  const hoja = XLSX.utils.json_to_sheet(filas);
+  hoja['!cols'] = [{wch:24},{wch:14},{wch:10},{wch:16},{wch:26},{wch:26},{wch:18}];
+  const libro = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(libro, hoja, 'Clientes');
+  XLSX.writeFile(libro, `clientes_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ---------- AUTOCOMPLETADO DE CLIENTES (usado en Órdenes y Punto de Venta) ----------
+function buscarSugerenciasCliente(prefijo){
+  const input = document.getElementById(prefijo+'-cliente' + (prefijo==='pv' ? '-nombre' : ''));
+  const caja = document.getElementById(prefijo+'-sugerencias');
+  if(!input || !caja) return;
+
+  const texto = normalizarTexto(input.value);
+  if(!texto){ caja.classList.remove('visible'); caja.innerHTML=''; return; }
+
+  const coincidencias = clientes.filter(c =>
+    normalizarTexto(c.nombre).includes(texto) || normalizarTexto(c.telefono).includes(texto)
+  ).slice(0, 6);
+
+  if(coincidencias.length===0){ caja.classList.remove('visible'); caja.innerHTML=''; return; }
+
+  caja.innerHTML = coincidencias.map(c => `
+    <div class="autocomplete-item" onmousedown="seleccionarSugerenciaCliente('${prefijo}','${c.id}')">
+      <div class="ac-nombre">${c.nombre}</div>
+      <div class="ac-detalle">${[c.telefono, c.docNumero ? (c.docTipo||'').toUpperCase()+' '+c.docNumero : ''].filter(Boolean).join(' · ') || 'Sin datos adicionales'}</div>
+    </div>
+  `).join('');
+  caja.classList.add('visible');
+}
+
+function seleccionarSugerenciaCliente(prefijo, id){
+  const c = clientes.find(x=>x.id===id);
+  if(!c) return;
+  if(prefijo==='ot'){
+    document.getElementById('ot-cliente').value = c.nombre;
+    document.getElementById('ot-telefono').value = c.telefono || '';
+  } else if(prefijo==='pv'){
+    document.getElementById('pv-cliente-nombre').value = c.nombre;
+    if(c.docTipo) document.getElementById('pv-doc-tipo').value = c.docTipo;
+    document.getElementById('pv-doc-numero').value = c.docNumero || '';
+  }
+  ocultarSugerenciasCliente(prefijo);
+}
+
+function ocultarSugerenciasCliente(prefijo){
+  setTimeout(()=>{
+    const caja = document.getElementById(prefijo+'-sugerencias');
+    if(caja){ caja.classList.remove('visible'); }
+  }, 150); // pequeño retraso para permitir que el click en una sugerencia se registre antes de ocultar
+}
+
+// ---------- CAJA REGISTRADORA ----------
+function sesionCajaAbierta(){
+  return cajaSesiones.find(s => s.estado === 'abierta') || null;
+}
+
+function totalesCaja(sesion){
+  const ventas = sesion.movimientos.filter(m=>m.tipo==='venta').reduce((s,m)=>s+m.monto,0);
+  const ingresos = sesion.movimientos.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.monto,0);
+  const retiros = sesion.movimientos.filter(m=>m.tipo==='retiro').reduce((s,m)=>s+m.monto,0);
+  const esperado = (sesion.montoInicial||0) + ventas + ingresos - retiros;
+  return {ventas, ingresos, retiros, esperado};
+}
+
+function renderCaja(){
+  const panel = document.getElementById('caja-panel');
+  if(panel){
+    const sesion = sesionCajaAbierta();
+    if(!sesion){
+      panel.innerHTML = `
+        <div class="caja-estado-badge cerrada">🔒 Caja cerrada</div>
+        <label>Monto inicial en efectivo (S/)</label>
+        <input id="caja-monto-inicial" type="number" step="0.01" placeholder="0.00">
+        <button class="primary" style="width:100%;margin-top:10px" onclick="abrirCaja()">Abrir caja</button>
+      `;
+    } else {
+      const t = totalesCaja(sesion);
+      panel.innerHTML = `
+        <div class="caja-estado-badge abierta">🟢 Caja abierta</div>
+        <div style="font-size:12px;color:var(--muted)">Abierta el ${sesion.fechaApertura} por ${sesion.usuarioApertura}</div>
+        <div class="caja-total-esperado">
+          <div class="valor">S/ ${t.esperado.toFixed(2)}</div>
+          <div class="label">Efectivo esperado en caja</div>
+        </div>
+        <div class="inv-resumen" style="grid-template-columns:repeat(3,1fr)">
+          <div class="inv-resumen-item"><div class="inv-resumen-valor">S/ ${sesion.montoInicial.toFixed(2)}</div><div class="inv-resumen-label">Inicial</div></div>
+          <div class="inv-resumen-item"><div class="inv-resumen-valor">S/ ${t.ventas.toFixed(2)}</div><div class="inv-resumen-label">Ventas efectivo</div></div>
+          <div class="inv-resumen-item"><div class="inv-resumen-valor">S/ ${(t.ingresos-t.retiros).toFixed(2)}</div><div class="inv-resumen-label">Ingresos−Retiros</div></div>
+        </div>
+        <div class="caja-botones">
+          <button class="ghost" onclick="registrarMovimientoCaja('ingreso')">➕ Ingreso</button>
+          <button class="ghost" onclick="registrarMovimientoCaja('retiro')">➖ Retiro</button>
+        </div>
+        <button class="primary" style="width:100%;margin-top:10px;background:var(--danger)" onclick="cerrarCaja()">🔒 Cerrar caja</button>
+      `;
+    }
+  }
+
+  const elHist = document.getElementById('caja-resumen-historial');
+  if(elHist){
+    const cerradas = cajaSesiones.filter(s=>s.estado==='cerrada');
+    if(cerradas.length===0){
+      elHist.innerHTML = '<div class="empty">Sin cierres registrados.</div>';
+    } else {
+      const recientes = cerradas.slice(-3).reverse();
+      const ultima = cerradas[cerradas.length-1];
+      elHist.innerHTML = `
+        <div class="inv-resumen" style="grid-template-columns:repeat(2,1fr)">
+          <div class="inv-resumen-item"><div class="inv-resumen-valor">${cerradas.length}</div><div class="inv-resumen-label">Cierres totales</div></div>
+          <div class="inv-resumen-item"><div class="inv-resumen-valor" style="color:${ultima.diferencia<0?'var(--danger)':ultima.diferencia>0?'var(--accent)':'var(--ok)'}">${ultima.diferencia>=0?'+':''}S/ ${ultima.diferencia.toFixed(2)}</div><div class="inv-resumen-label">Última diferencia</div></div>
+        </div>
+        <div style="margin-top:12px">
+          ${recientes.map(s=>`
+            <div class="linea-resumen">
+              <span>${s.fechaCierre}</span>
+              <span style="color:${s.diferencia<0?'var(--danger)':s.diferencia>0?'var(--accent)':'var(--ok)'}">${s.diferencia>=0?'+':''}S/ ${s.diferencia.toFixed(2)}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+  }
+}
+
+async function abrirCaja(){
+  if(sesionCajaAbierta()){ alert('Ya hay una caja abierta.'); return; }
+  const monto = parseFloat(document.getElementById('caja-monto-inicial').value);
+  if(isNaN(monto) || monto<0){ alert('Ingresa un monto inicial válido.'); return; }
+  cajaSesiones.push({
+    id: 'CJ'+Date.now(),
+    fechaApertura: new Date().toLocaleString('es-PE'),
+    usuarioApertura: (currentUser && currentUser.nombre) || auth.usuario,
+    montoInicial: monto,
+    movimientos: [],
+    estado: 'abierta',
+    fechaCierre: null, usuarioCierre: null, montoFinalSistema: null, montoFinalContado: null, diferencia: null
+  });
+  await saveData('cajaSesiones', cajaSesiones);
+  renderCaja();
+}
+
+async function registrarMovimientoCaja(tipo){
+  const sesion = sesionCajaAbierta();
+  if(!sesion){ alert('No hay ninguna caja abierta.'); return; }
+  const texto = prompt(tipo==='ingreso' ? 'Monto del ingreso a caja (S/):' : 'Monto del retiro de caja (S/):');
+  if(texto===null) return;
+  const monto = parseFloat(texto);
+  if(isNaN(monto) || monto<=0){ alert('Ingresa un monto válido.'); return; }
+  const motivo = prompt('Motivo (opcional):') || '';
+  sesion.movimientos.push({ tipo, monto, motivo, fecha: new Date().toLocaleString('es-PE') });
+  await saveData('cajaSesiones', cajaSesiones);
+  renderCaja();
+}
+
+async function registrarVentaEnCaja(monto, ventaId){
+  const sesion = sesionCajaAbierta();
+  if(!sesion) return;
+  sesion.movimientos.push({ tipo:'venta', monto, motivo:`Venta ${ventaId}`, fecha: new Date().toLocaleString('es-PE'), ventaId });
+  await saveData('cajaSesiones', cajaSesiones);
+  renderCaja();
+}
+
+async function cerrarCaja(){
+  const sesion = sesionCajaAbierta();
+  if(!sesion){ alert('No hay ninguna caja abierta.'); return; }
+  const t = totalesCaja(sesion);
+  const texto = prompt(`Efectivo esperado en caja: S/ ${t.esperado.toFixed(2)}\n\nCuenta el efectivo real en caja y escribe el monto contado:`);
+  if(texto===null) return;
+  const contado = parseFloat(texto);
+  if(isNaN(contado) || contado<0){ alert('Ingresa un monto válido.'); return; }
+
+  const diferencia = contado - t.esperado;
+  sesion.estado = 'cerrada';
+  sesion.fechaCierre = new Date().toLocaleString('es-PE');
+  sesion.usuarioCierre = (currentUser && currentUser.nombre) || auth.usuario;
+  sesion.montoFinalSistema = t.esperado;
+  sesion.montoFinalContado = contado;
+  sesion.diferencia = diferencia;
+
+  await saveData('cajaSesiones', cajaSesiones);
+  renderCaja();
+
+  const msg = diferencia===0 ? 'La caja cuadró perfectamente.' :
+    diferencia>0 ? `Sobran S/ ${diferencia.toFixed(2)} respecto a lo esperado.` :
+    `Faltan S/ ${Math.abs(diferencia).toFixed(2)} respecto a lo esperado.`;
+  alert(`Caja cerrada.\n\n${msg}`);
+}
+
+function construirTablaCaja(filtro){
+  filtro = normalizarTexto(filtro);
+  const cerradas = cajaSesiones.filter(s=>s.estado==='cerrada').slice().reverse();
+  const lista = cerradas.filter(s =>
+    !filtro || normalizarTexto(s.fechaCierre).includes(filtro) || normalizarTexto(s.usuarioCierre).includes(filtro)
+  );
+  if(cerradas.length===0) return '<div class="empty">Sin cierres registrados.</div>';
+  if(lista.length===0) return '<div class="empty">Ningún cierre coincide con la búsqueda.</div>';
+
+  return `<div class="table-scroll"><table><thead><tr><th>Apertura</th><th>Cierre</th><th>Inicial</th><th>Esperado</th><th>Contado</th><th>Diferencia</th><th>Cerrado por</th></tr></thead><tbody>` +
+    lista.map(s => `<tr>
+      <td data-label="Apertura" style="font-size:11px">${s.fechaApertura}</td>
+      <td data-label="Cierre" style="font-size:11px">${s.fechaCierre}</td>
+      <td data-label="Inicial">S/ ${s.montoInicial.toFixed(2)}</td>
+      <td data-label="Esperado">S/ ${s.montoFinalSistema.toFixed(2)}</td>
+      <td data-label="Contado">S/ ${s.montoFinalContado.toFixed(2)}</td>
+      <td data-label="Diferencia" style="font-weight:700;color:${s.diferencia<0?'var(--danger)':s.diferencia>0?'var(--accent)':'var(--ok)'}">${s.diferencia>=0?'+':''}S/ ${s.diferencia.toFixed(2)}</td>
+      <td data-label="Cerrado por">${s.usuarioCierre}</td>
+    </tr>`).join('') + '</tbody></table></div>';
+}
+
+function abrirVentanaCaja(){
+  abrirModal('Historial de caja', `
+    <input id="modal-caja-buscar" placeholder="Buscar por fecha o usuario..." oninput="filtrarVentanaCaja(this.value)" style="width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:9px 10px;border-radius:6px;font-size:14px;margin-bottom:14px">
+    <div id="modal-caja-tabla">${construirTablaCaja()}</div>
+  `);
+}
+
+function filtrarVentanaCaja(valor){
+  const el = document.getElementById('modal-caja-tabla');
+  if(el) el.innerHTML = construirTablaCaja(valor);
+}
+
+function exportarCajaExcel(){
+  const cerradas = cajaSesiones.filter(s=>s.estado==='cerrada');
+  if(cerradas.length===0){ alert('No hay cierres de caja para exportar.'); return; }
+  if(typeof XLSX === 'undefined'){ alert('No se pudo cargar la librería de Excel. Verifica tu conexión a internet e intenta de nuevo.'); return; }
+  const filas = cerradas.map(s=>({
+    'Apertura': s.fechaApertura,
+    'Abierta por': s.usuarioApertura,
+    'Cierre': s.fechaCierre,
+    'Cerrada por': s.usuarioCierre,
+    'Monto inicial (S/)': s.montoInicial,
+    'Esperado (S/)': s.montoFinalSistema,
+    'Contado (S/)': s.montoFinalContado,
+    'Diferencia (S/)': s.diferencia
+  }));
+  const hoja = XLSX.utils.json_to_sheet(filas);
+  hoja['!cols'] = [{wch:18},{wch:16},{wch:18},{wch:16},{wch:14},{wch:14},{wch:14},{wch:14}];
+  const libro = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(libro, hoja, 'Caja');
+  XLSX.writeFile(libro, `caja_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ---------- ORDENES ----------
+function calcularResto(){
+  const cot = parseFloat(document.getElementById('ot-cotizacion').value) || 0;
+  const ade = parseFloat(document.getElementById('ot-adelanto').value) || 0;
+  const resto = Math.max(cot - ade, 0);
+  document.getElementById('ot-resto').value = resto.toFixed(2);
+}
+
+async function crearOrden(){
+  const cliente = document.getElementById('ot-cliente').value.trim();
+  const telefono = document.getElementById('ot-telefono').value.trim();
+  const fecha = document.getElementById('ot-fecha').value;
+  const equipo = document.getElementById('ot-equipo').value.trim();
+  const falla = document.getElementById('ot-falla').value.trim();
+  const total = parseFloat(document.getElementById('ot-cotizacion').value) || 0;
+  const adelanto = parseFloat(document.getElementById('ot-adelanto').value) || 0;
+
+  if(!cliente || !equipo){
+    alert('Ingresa al menos el cliente y el equipo/artículo.');
+    return;
+  }
+
+  const orden = {
+    id: 'OT-' + Date.now().toString().slice(-6),
+    cliente, telefono, fecha, equipo, falla,
+    tecnico: (currentUser && currentUser.nombre) || auth.usuario,
+    adelanto, total,
+    estado: 'pendiente',
+    creado: new Date().toLocaleString('es-PE')
+  };
+  ordenes.unshift(orden);
+  saveData('ordenes', ordenes);
+  renderOrdenes();
+  await upsertCliente({nombre: cliente, telefono});
+
+  ['ot-cliente','ot-telefono','ot-fecha','ot-equipo','ot-falla','ot-cotizacion','ot-adelanto','ot-resto'].forEach(id=>document.getElementById(id).value='');
+
+  preguntarImpresionOrden(orden.id);
+}
+
+function preguntarImpresionOrden(id){
+  const imp = ajustes.impresion || impresionPorDefecto();
+  const anchoSugerido = imp.anchoDefecto || '58';
+  abrirModal('Orden guardada', `
+    <div style="font-size:14px;margin-bottom:14px">La orden se guardó correctamente. ¿Deseas imprimir el ticket ahora?</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="primary" style="flex:1" onclick="cerrarAyuda(); imprimirOrden('${id}', ${anchoSugerido})">🖨 Imprimir (${anchoSugerido}mm)</button>
+      <button class="ghost" onclick="cerrarAyuda(); imprimirOrden('${id}', ${anchoSugerido==='58'?80:58})">🖨 Imprimir (${anchoSugerido==='58'?80:58}mm)</button>
+    </div>
+    <button class="ghost" style="width:100%;margin-top:8px" onclick="cerrarAyuda()">No imprimir</button>
+  `);
+}
+
+function cambiarEstado(id, estado){
+  const o = ordenes.find(x=>x.id===id);
+  if(o){ o.estado = estado; saveData('ordenes', ordenes); renderOrdenes(); }
+}
+
+function eliminarOrden(id){
+  if(!confirm('¿Eliminar esta orden de trabajo?')) return;
+  ordenes = ordenes.filter(o=>o.id!==id);
+  saveData('ordenes', ordenes);
+  renderOrdenes();
+}
+
+function construirTablaOrdenes(filtro){
+  filtro = (filtro||'').trim().toLowerCase();
+  const lista = ordenes.filter(o =>
+    !filtro ||
+    o.cliente.toLowerCase().includes(filtro) ||
+    o.equipo.toLowerCase().includes(filtro) ||
+    o.id.toLowerCase().includes(filtro)
+  );
+  if(ordenes.length===0) return '<div class="empty">Sin órdenes aún.</div>';
+  if(lista.length===0) return '<div class="empty">Ninguna orden coincide con la búsqueda.</div>';
+
+  let html = '<div class="table-scroll" id="ot-tabla-scroll"><table><thead><tr><th>N°</th><th>Cliente</th><th>Equipo</th><th>Cotiz.</th><th>Adelanto</th><th>Resto</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>';
+  lista.forEach(o=>{
+    const total = (o.total!=null ? o.total : (o.precio||0));
+    const adelanto = o.adelanto || 0;
+    const resto = Math.max(total - adelanto, 0);
+    html += `<tr>
+      <td data-label="N°">${o.id}</td>
+      <td data-label="Cliente">${o.cliente}<br><span style="color:var(--muted);font-size:11px">${o.telefono||''}</span></td>
+      <td data-label="Equipo">${o.equipo}</td>
+      <td data-label="Cotización">S/ ${total.toFixed(2)}</td>
+      <td data-label="Adelanto">S/ ${adelanto.toFixed(2)}</td>
+      <td data-label="Resto" style="font-weight:700;color:${resto>0?'var(--accent)':'var(--ok)'}">S/ ${resto.toFixed(2)}</td>
+      <td data-label="Estado">
+        <select onchange="cambiarEstado('${o.id}', this.value)" style="width:auto;padding:4px 6px;font-size:12px">
+          <option value="cotizacion" ${o.estado==='cotizacion'?'selected':''}>Cotización</option>
+          <option value="pendiente" ${o.estado==='pendiente'?'selected':''}>Pendiente</option>
+          <option value="proceso" ${o.estado==='proceso'?'selected':''}>En proceso</option>
+          <option value="listo" ${o.estado==='listo'?'selected':''}>Listo</option>
+          <option value="entregado" ${o.estado==='entregado'?'selected':''}>Entregado</option>
+        </select>
+      </td>
+      <td data-label="" class="actions">
+        <select class="print-select" onchange="ejecutarImpresion('${o.id}', this)">
+          <option value="">🖨 Imprimir...</option>
+          <option value="58">Ticket 58mm</option>
+          <option value="80">Ticket 80mm</option>
+          <option value="a4">Hoja A4</option>
+        </select>
+        <button class="icon-btn" style="border-color:var(--ok);color:var(--ok)" title="Avisar por WhatsApp" onclick="avisarWhatsApp('${o.id}')">📱</button>
+        <button class="small-danger" onclick="eliminarOrden('${o.id}')">Eliminar</button>
+      </td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  return html;
+}
+
+function abrirVentanaOrdenes(){
+  abrirModal(`Órdenes de trabajo (${ordenes.length})`, `
+    <input id="modal-ot-buscar" placeholder="Buscar por cliente, equipo o N° de orden..." oninput="filtrarVentanaOrdenes(this.value)" style="width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:9px 10px;border-radius:6px;font-size:14px;margin-bottom:14px">
+    <div id="modal-ot-tabla">${construirTablaOrdenes()}</div>
+  `);
+}
+
+function filtrarVentanaOrdenes(valor){
+  const el = document.getElementById('modal-ot-tabla');
+  if(el) el.innerHTML = construirTablaOrdenes(valor);
+}
+
+function renderOrdenes(){
+  const el = document.getElementById('ot-resumen');
+  if(!el) return;
+  if(ordenes.length===0){ el.innerHTML = '<div class="empty">Sin órdenes aún.</div>'; return; }
+
+  const pendientes = ordenes.filter(o => o.estado!=='entregado').length;
+  const recientes = ordenes.slice(0,3);
+
+  el.innerHTML = `
+    <div class="inv-resumen" style="grid-template-columns:repeat(2,1fr)">
+      <div class="inv-resumen-item">
+        <div class="inv-resumen-valor">${ordenes.length}</div>
+        <div class="inv-resumen-label">Total de órdenes</div>
+      </div>
+      <div class="inv-resumen-item">
+        <div class="inv-resumen-valor">${pendientes}</div>
+        <div class="inv-resumen-label">Sin entregar</div>
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      ${recientes.map(o=>`
+        <div class="linea-resumen">
+          <span>${o.cliente} · ${o.equipo}</span>
+          <span class="badge ${o.estado}">${o.estado}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function exportarOrdenesExcel(){
+  if(ordenes.length===0){ alert('No hay órdenes para exportar.'); return; }
+  if(typeof XLSX === 'undefined'){ alert('No se pudo cargar la librería de Excel. Verifica tu conexión a internet e intenta de nuevo.'); return; }
+
+  const estadoLabel = {
+    cotizacion:'Cotización', pendiente:'Pendiente', proceso:'En proceso',
+    listo:'Listo', entregado:'Entregado'
+  };
+
+  const filas = ordenes.map(o=>{
+    const total = (o.total!=null ? o.total : (o.precio||0));
+    const adelanto = o.adelanto || 0;
+    const resto = Math.max(total - adelanto, 0);
+    return {
+      'N° Orden': o.id,
+      'Fecha creación': o.creado || '',
+      'Cliente': o.cliente || '',
+      'Teléfono': o.telefono || '',
+      'Equipo': o.equipo || '',
+      'Falla / Trabajo': o.falla || '',
+      'Atendido por': o.tecnico || '',
+      'Fecha entrega': o.fecha || '',
+      'Cotización (S/)': total,
+      'Adelanto (S/)': adelanto,
+      'Resto (S/)': resto,
+      'Estado': estadoLabel[o.estado] || o.estado
+    };
+  });
+
+  const hoja = XLSX.utils.json_to_sheet(filas);
+  hoja['!cols'] = [
+    {wch:12},{wch:18},{wch:20},{wch:14},{wch:18},
+    {wch:30},{wch:14},{wch:14},{wch:12},{wch:12},{wch:12},{wch:12}
+  ];
+  const libro = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(libro, hoja, 'Órdenes de trabajo');
+
+  const fechaArchivo = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(libro, `ordenes_trabajo_${fechaArchivo}.xlsx`);
+}
+
+function ejecutarImpresion(id, selectEl){
+  const valor = selectEl.value;
+  if(valor==='58') imprimirOrden(id,58);
+  else if(valor==='80') imprimirOrden(id,80);
+  else if(valor==='a4') imprimirOrdenA4(id);
+  selectEl.value = '';
+}
+
+function normalizarTelefono(tel){
+  let n = (tel||'').replace(/\D/g,'');
+  if(n.length===9) n = '51'+n; // asume Perú si son 9 dígitos locales
+  return n;
+}
+
+function avisarWhatsApp(id){
+  const o = ordenes.find(x=>x.id===id);
+  if(!o) return;
+  if(!o.telefono){ alert('Esta orden no tiene teléfono registrado.'); return; }
+
+  const total = (o.total!=null ? o.total : (o.precio||0));
+  const adelanto = o.adelanto || 0;
+  const resto = Math.max(total - adelanto, 0);
+
+  const estadoTexto = {
+    cotizacion:'está en cotización',
+    pendiente:'está pendiente de iniciar',
+    proceso:'está en proceso',
+    listo:'ya está LISTO PARA RECOGER',
+    entregado:'ya fue entregada'
+  }[o.estado] || o.estado;
+
+  const plantilla = (ajustes.whatsapp && ajustes.whatsapp.trim()) ? ajustes.whatsapp : plantillaWhatsAppPorDefecto();
+
+  const mensaje = plantilla
+    .replaceAll('{cliente}', o.cliente || '')
+    .replaceAll('{negocio}', ajustes.nombre || 'nuestro taller')
+    .replaceAll('{orden}', o.id)
+    .replaceAll('{equipo}', o.equipo || '')
+    .replaceAll('{estado}', estadoTexto)
+    .replaceAll('{cotizacion}', total.toFixed(2))
+    .replaceAll('{adelanto}', adelanto.toFixed(2))
+    .replaceAll('{resto}', resto.toFixed(2))
+    .replaceAll('{fecha}', o.fecha || 'por confirmar');
+
+  const numero = normalizarTelefono(o.telefono);
+  const url = `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`;
+  window.open(url, '_blank');
+}
+
+function imprimirOrden(id, ancho){
+  const o = ordenes.find(x=>x.id===id);
+  if(!o) return;
+  const total = (o.total!=null ? o.total : (o.precio||0));
+  const adelanto = o.adelanto || 0;
+  const resto = Math.max(total - adelanto, 0);
+  const html = `
+    <div class="ticket">
+      ${ticketHeader()}
+      <h3>ORDEN DE TRABAJO</h3>
+      <div class="center">${o.id}</div>
+      <hr>
+      <div class="line"><span>Fecha:</span><span>${o.creado.split(',')[0]}</span></div>
+      <div class="line"><span>Cliente:</span><span>${o.cliente}</span></div>
+      ${o.telefono?`<div class="line"><span>Tel:</span><span>${o.telefono}</span></div>`:''}
+      <div class="line"><span>Equipo:</span><span>${o.equipo}</span></div>
+      ${o.fecha?`<div class="line"><span>Entrega:</span><span>${o.fecha}</span></div>`:''}
+      ${o.tecnico?`<div class="line"><span>Atendido por:</span><span>${o.tecnico}</span></div>`:''}
+      <hr>
+      <div><strong>Falla / trabajo:</strong><br>${o.falla||'-'}</div>
+      <hr>
+      <div class="line"><span>Cotización:</span><span>S/ ${total.toFixed(2)}</span></div>
+      <div class="line"><span>Adelanto:</span><span>S/ ${adelanto.toFixed(2)}</span></div>
+      <div class="line tot"><span>Resto a pagar:</span><span>S/ ${resto.toFixed(2)}</span></div>
+      <hr>
+      <div class="center">Estado: ${o.estado.toUpperCase()}</div>
+      <div class="center" style="margin-top:6px">Conserve este ticket</div>
+      ${ticketFooter()}
+    </div>`;
+  imprimirTicket(html, ancho);
+}
+
+function imprimirOrdenA4(id){
+  const o = ordenes.find(x=>x.id===id);
+  if(!o) return;
+  const total = (o.total!=null ? o.total : (o.precio||0));
+  const adelanto = o.adelanto || 0;
+  const resto = Math.max(total - adelanto, 0);
+  const logoHtml = ajustes.logo ? `<img src="${ajustes.logo}" alt="Logo">` : '';
+
+  const html = `
+    <div class="a4">
+      <div class="a4-header">
+        <div class="a4-empresa">
+          ${logoHtml}
+          <div>
+            <h1>${ajustes.nombre || 'Orden de Trabajo'}</h1>
+            ${ajustes.direccion?`<div>${ajustes.direccion}</div>`:''}
+            ${ajustes.telefono?`<div>Tel: ${ajustes.telefono}</div>`:''}
+            ${ajustes.ruc?`<div>RUC/DNI: ${ajustes.ruc}</div>`:''}
+          </div>
+        </div>
+        <div class="a4-folio">
+          <div class="a4-folio-label">Orden de trabajo</div>
+          <div class="a4-folio-id">${o.id}</div>
+          <div>${o.creado}</div>
+        </div>
+      </div>
+
+      <div class="a4-section">
+        <table class="a4-datos">
+          <tr><td><strong>Cliente</strong></td><td>${o.cliente}</td><td><strong>Teléfono</strong></td><td>${o.telefono||'-'}</td></tr>
+          <tr><td><strong>Equipo</strong></td><td>${o.equipo}</td><td><strong>Atendido por</strong></td><td>${o.tecnico||'-'}</td></tr>
+          <tr><td><strong>Fecha entrega</strong></td><td>${o.fecha||'-'}</td><td><strong>Estado</strong></td><td>${o.estado.toUpperCase()}</td></tr>
+        </table>
+      </div>
+
+      <div class="a4-section">
+        <div class="a4-label">Falla / trabajo a realizar</div>
+        <div class="a4-box">${o.falla || 'Sin descripción'}</div>
+      </div>
+
+      <div class="a4-section">
+        <table class="a4-totales">
+          <tr><td>Cotización</td><td>S/ ${total.toFixed(2)}</td></tr>
+          <tr><td>Adelanto</td><td>S/ ${adelanto.toFixed(2)}</td></tr>
+          <tr class="a4-tot-final"><td>Resto a pagar</td><td>S/ ${resto.toFixed(2)}</td></tr>
+        </table>
+      </div>
+
+      <div class="a4-firmas">
+        <div class="a4-firma"><div class="a4-linea"></div>Firma del cliente</div>
+        <div class="a4-firma"><div class="a4-linea"></div>Firma del taller</div>
+      </div>
+
+      ${ajustes.mensaje?`<div class="a4-footer">${ajustes.mensaje}</div>`:''}
+    </div>`;
+  imprimirTicketA4(html);
+}
+
+// ---------- POS ----------
+
+function generarCodigoBarras(){
+  // Código numérico único basado en la hora, apto para imprimir como CODE128
+  return '2' + Date.now().toString().slice(-11);
+}
+
+async function agregarProducto(){
+  const nombre = document.getElementById('inv-nombre').value.trim();
+  const tipo = document.getElementById('inv-tipo').value.trim();
+  const marca = document.getElementById('inv-marca').value.trim();
+  const precio = parseFloat(document.getElementById('inv-precio').value);
+  let codigo = document.getElementById('inv-codigo').value.trim();
+  const stockInicial = parseInt(document.getElementById('inv-cantidad').value) || 0;
+
+  if(!nombre || isNaN(precio)){ alert('Ingresa nombre y precio válidos.'); return; }
+  if(!codigo) codigo = generarCodigoBarras();
+  if(productos.some(p=>p.codigoBarras===codigo)){ alert('Ya existe un producto con ese código de barras.'); return; }
+
+  const id = 'P'+Date.now();
+  productos.push({id, nombre, tipo, marca, precio, codigoBarras:codigo, stock:stockInicial});
+  await saveData('productos', productos);
+  if(stockInicial > 0){
+    await registrarMovimiento(id, nombre, 'entrada', stockInicial, stockInicial, 'Stock inicial');
+  }
+
+  document.getElementById('inv-nombre').value='';
+  document.getElementById('inv-tipo').value='';
+  document.getElementById('inv-marca').value='';
+  document.getElementById('inv-precio').value='';
+  document.getElementById('inv-codigo').value='';
+  document.getElementById('inv-cantidad').value='';
+  renderCatalogo();
+  renderKardex();
+}
+
+function eliminarProducto(id){
+  productos = productos.filter(p=>p.id!==id);
+  saveData('productos', productos);
+  renderCatalogo();
+  renderKardex();
+}
+
+function renderCatalogo(){
+  const el = document.getElementById('pv-catalogo');
+  if(productos.length===0){ el.innerHTML = '<div class="empty">Aún no hay productos. Agrégalos desde 📦 Inventario.</div>'; return; }
+
+  const busqueda = (document.getElementById('pv-buscar')?.value || '').trim().toLowerCase();
+  const lista = productos.filter(p =>
+    !busqueda ||
+    p.nombre.toLowerCase().includes(busqueda) ||
+    (p.marca||'').toLowerCase().includes(busqueda) ||
+    (p.tipo||'').toLowerCase().includes(busqueda)
+  );
+
+  if(lista.length===0){ el.innerHTML = '<div class="empty">Ningún producto coincide con la búsqueda.</div>'; return; }
+
+  el.innerHTML = lista.map(p=>{
+    const stock = p.stock || 0;
+    const colorStock = stock<=0 ? 'var(--danger)' : stock<=5 ? 'var(--accent)' : 'var(--ok)';
+    const marcaTipo = [p.marca, p.tipo].filter(Boolean).join(' · ');
+    return `
+    <div class="prod-item">
+      <div onclick="agregarAlCarrito('${p.id}')" style="flex:1;cursor:pointer">
+        <div class="name">${p.nombre}</div>
+        ${marcaTipo ? `<div style="font-size:11px;color:var(--muted)">${marcaTipo}</div>` : ''}
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">
+          ${p.codigoBarras ? 'Cód: '+p.codigoBarras : 'Sin código'} · Stock: <span style="color:${colorStock};font-weight:700">${stock}</span>
+        </div>
+      </div>
+      <div class="price">S/ ${p.precio.toFixed(2)}</div>
+      <button class="icon-btn" title="Ingresar / ajustar stock" onclick="event.stopPropagation(); ajustarStock('${p.id}')">📦</button>
+      <button class="icon-btn" title="Imprimir etiqueta con código de barras" onclick="event.stopPropagation(); imprimirEtiqueta('${p.id}')">🏷</button>
+      <button class="small-danger" style="margin-left:4px" onclick="event.stopPropagation(); eliminarProducto('${p.id}')">✕</button>
+    </div>
+  `;}).join('');
+}
+
+function escanearCodigoBarras(){
+  const input = document.getElementById('pv-scan');
+  const codigo = input.value.trim();
+  if(!codigo) return;
+  const p = productos.find(x => x.codigoBarras === codigo);
+  if(!p){ alert('No se encontró ningún producto con ese código.'); input.value=''; return; }
+  agregarAlCarrito(p.id);
+  input.value = '';
+}
+
+async function ajustarStock(id){
+  const p = productos.find(x=>x.id===id);
+  if(!p) return;
+  const texto = prompt(`Stock actual de "${p.nombre}": ${p.stock||0}\n\nCantidad a mover (positivo para ingresar, negativo para descontar):`);
+  if(texto===null) return;
+  const cantidad = parseInt(texto);
+  if(isNaN(cantidad) || cantidad===0){ alert('Ingresa una cantidad válida distinta de cero.'); return; }
+  const motivo = prompt('Motivo del movimiento (ej: compra a proveedor, ajuste de inventario, merma):') || '';
+
+  p.stock = (p.stock||0) + cantidad;
+  await saveData('productos', productos);
+  await registrarMovimiento(p.id, p.nombre, cantidad>0 ? 'entrada' : 'ajuste', cantidad, p.stock, motivo);
+  renderCatalogo();
+  renderKardex();
+  alert(`Stock actualizado: ${p.stock} unidades.`);
+}
+
+function editarProducto(id){
+  const p = productos.find(x=>x.id===id);
+  if(!p) return;
+  const esc = (t) => (t||'').replace(/"/g, '&quot;');
+  abrirModal('Editar producto', `
+    <label style="display:block;font-size:12px;color:var(--muted);margin:4px 0">Nombre</label>
+    <input id="edit-prod-nombre" value="${esc(p.nombre)}" style="width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:9px 10px;border-radius:6px;font-size:14px">
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+      <div>
+        <label style="display:block;font-size:12px;color:var(--muted);margin:4px 0">Tipo</label>
+        <input id="edit-prod-tipo" value="${esc(p.tipo)}" style="width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:9px 10px;border-radius:6px;font-size:14px">
+      </div>
+      <div>
+        <label style="display:block;font-size:12px;color:var(--muted);margin:4px 0">Marca</label>
+        <input id="edit-prod-marca" value="${esc(p.marca)}" style="width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:9px 10px;border-radius:6px;font-size:14px">
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+      <div>
+        <label style="display:block;font-size:12px;color:var(--muted);margin:4px 0">Precio (S/)</label>
+        <input id="edit-prod-precio" type="number" step="0.01" value="${p.precio}" style="width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:9px 10px;border-radius:6px;font-size:14px">
+      </div>
+      <div>
+        <label style="display:block;font-size:12px;color:var(--muted);margin:4px 0">Código de barras</label>
+        <input id="edit-prod-codigo" value="${esc(p.codigoBarras)}" style="width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:9px 10px;border-radius:6px;font-size:14px">
+      </div>
+    </div>
+
+    <div style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5">
+      Para cambiar el stock usa el botón "Ajustar" en la lista — así queda registrado en el Kardex.
+    </div>
+
+    <button class="primary" style="margin-top:14px;width:100%" onclick="guardarEdicionProducto('${id}')">Guardar cambios</button>
+  `);
+}
+
+async function guardarEdicionProducto(id){
+  const p = productos.find(x=>x.id===id);
+  if(!p) return;
+
+  const nombre = document.getElementById('edit-prod-nombre').value.trim();
+  const tipo = document.getElementById('edit-prod-tipo').value.trim();
+  const marca = document.getElementById('edit-prod-marca').value.trim();
+  const precio = parseFloat(document.getElementById('edit-prod-precio').value);
+  const codigo = document.getElementById('edit-prod-codigo').value.trim();
+
+  if(!nombre || isNaN(precio)){ alert('Ingresa un nombre y un precio válidos.'); return; }
+  if(codigo && productos.some(x => x.id!==id && x.codigoBarras===codigo)){
+    alert('Ya existe otro producto con ese código de barras.');
+    return;
+  }
+
+  p.nombre = nombre;
+  p.tipo = tipo;
+  p.marca = marca;
+  p.precio = precio;
+  p.codigoBarras = codigo || p.codigoBarras || generarCodigoBarras();
+
+  await saveData('productos', productos);
+  cerrarAyuda();
+  renderCatalogo();
+  renderKardex();
+}
+
+async function imprimirEtiqueta(id){
+  const p = productos.find(x=>x.id===id);
+  if(!p) return;
+  if(typeof JsBarcode === 'undefined'){
+    alert('No se pudo cargar la librería de códigos de barras. Verifica tu conexión a internet e intenta de nuevo.');
+    return;
+  }
+  if(!p.codigoBarras){
+    p.codigoBarras = generarCodigoBarras();
+    await saveData('productos', productos);
+    renderCatalogo();
+    renderKardex();
+  }
+  const imp = ajustes.impresion || impresionPorDefecto();
+  const html = `
+    <div class="ticket">
+      <div class="center" style="font-weight:700;font-size:12px">${p.nombre}</div>
+      <div class="center" style="font-size:11px;margin-bottom:4px">S/ ${p.precio.toFixed(2)}</div>
+      <div class="center"><svg id="barcode-temp"></svg></div>
+    </div>`;
+  const area = document.getElementById('printArea');
+  area.innerHTML = html;
+  area.style.width = '58mm';
+  try{
+    JsBarcode('#barcode-temp', p.codigoBarras, {
+      format: imp.bcFormato || 'CODE128',
+      width: imp.bcGrosor || 1.6,
+      height: imp.bcAlto || 42,
+      displayValue: imp.bcNumero !== false,
+      fontSize: 11,
+      margin: 6
+    });
+  }catch(e){
+    alert('No se pudo generar el código de barras con el formato configurado. Verifica en Ajustes → Edición de Impresión que el formato elegido admita este código (por ejemplo, EAN-13 requiere 12 o 13 dígitos numéricos).');
+    return;
+  }
+  dispararImpresion('58mm auto');
+}
+
+async function imprimirTodosCodigosBarra(){
+  if(productos.length===0){ alert('No hay productos para imprimir.'); return; }
+  if(typeof JsBarcode === 'undefined'){
+    alert('No se pudo cargar la librería de códigos de barras. Verifica tu conexión a internet e intenta de nuevo.');
+    return;
+  }
+
+  // A los productos sin código les asigna uno automáticamente antes de imprimir
+  let generados = 0;
+  productos.forEach(p=>{
+    if(!p.codigoBarras){ p.codigoBarras = generarCodigoBarras(); generados++; }
+  });
+  if(generados > 0){
+    await saveData('productos', productos);
+    renderCatalogo();
+    renderKardex();
+  }
+
+  const conCodigo = productos.filter(p=>p.codigoBarras);
+  if(conCodigo.length===0){ alert('Ningún producto tiene código de barras.'); return; }
+  if(conCodigo.length===0){ alert('Ningún producto tiene código de barras.'); return; }
+
+  const html = `
+    <div class="a4" style="padding:10mm">
+      <div class="etiquetas-grid">
+        ${conCodigo.map((p,i)=>`
+          <div class="etiqueta-item">
+            <div class="etiqueta-nombre">${p.nombre}</div>
+            <div class="etiqueta-precio">S/ ${p.precio.toFixed(2)}</div>
+            <svg id="bc-${i}"></svg>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+
+  const area = document.getElementById('printArea');
+  area.innerHTML = html;
+  area.style.width = '210mm';
+
+  const imp = ajustes.impresion || impresionPorDefecto();
+  const fallidos = [];
+  conCodigo.forEach((p,i)=>{
+    try{
+      JsBarcode(`#bc-${i}`, p.codigoBarras, {
+        format: imp.bcFormato || 'CODE128',
+        width: Math.min(imp.bcGrosor || 1.3, 1.6),
+        height: Math.min(imp.bcAlto || 32, 40),
+        displayValue: imp.bcNumero !== false,
+        fontSize: 9,
+        margin: 2
+      });
+    }
+    catch(e){ fallidos.push(p.nombre); console.error('No se pudo generar el código de', p.nombre, e); }
+  });
+
+  if(fallidos.length > 0){
+    alert(`El formato de código elegido en Ajustes → Edición de Impresión no admite el código de estos productos, así que no se imprimieron: ${fallidos.join(', ')}.\n\nPrueba con el formato CODE128, que acepta cualquier texto.`);
+  }
+
+  dispararImpresion('210mm 297mm');
+}
+
+async function registrarMovimiento(productoId, productoNombre, tipo, cantidad, stockResultante, motivo){
+  const kardex = await loadData('kardex', []);
+  kardex.unshift({
+    id: 'K'+Date.now()+Math.floor(Math.random()*1000),
+    fecha: new Date().toLocaleString('es-PE'),
+    productoId, productoNombre, tipo, cantidad, stockResultante, motivo
+  });
+  await saveData('kardex', kardex);
+}
+
+function construirTablaInventario(filtro){
+  filtro = (filtro||'').trim().toLowerCase();
+  const listaFiltrada = productos.filter(p =>
+    !filtro ||
+    p.nombre.toLowerCase().includes(filtro) ||
+    (p.codigoBarras||'').toLowerCase().includes(filtro) ||
+    (p.tipo||'').toLowerCase().includes(filtro) ||
+    (p.marca||'').toLowerCase().includes(filtro)
+  );
+  if(productos.length===0) return '<div class="empty">Sin productos registrados.</div>';
+  if(listaFiltrada.length===0) return '<div class="empty">Ningún producto coincide con la búsqueda.</div>';
+
+  return '<div class="table-scroll" id="kx-stock-scroll"><table><thead><tr><th>Producto</th><th>Tipo</th><th>Marca</th><th>Código</th><th>Stock</th><th>Precio</th><th>Valor</th><th></th></tr></thead><tbody>' +
+    listaFiltrada.map(p=>{
+      const stock = p.stock || 0;
+      const color = stock<=0 ? 'var(--danger)' : stock<=5 ? 'var(--accent)' : 'var(--ok)';
+      return `<tr>
+        <td data-label="Producto" style="font-weight:700">${p.nombre}</td>
+        <td data-label="Tipo" style="font-size:12px;color:var(--muted)">${p.tipo||'-'}</td>
+        <td data-label="Marca" style="font-size:12px;color:var(--muted)">${p.marca||'-'}</td>
+        <td data-label="Código" style="font-family:var(--mono);font-size:11px">${p.codigoBarras||'-'}</td>
+        <td data-label="Stock" style="font-weight:700;color:${color}">${stock}</td>
+        <td data-label="Precio">S/ ${p.precio.toFixed(2)}</td>
+        <td data-label="Valor">S/ ${(stock*p.precio).toFixed(2)}</td>
+        <td data-label="">
+          <div class="fila-acciones">
+            <button class="icon-btn" title="Editar producto" onclick="editarProducto('${p.id}')">✏️</button>
+            <button class="ghost" style="font-size:11px;padding:4px 8px" onclick="ajustarStock('${p.id}')">Ajustar</button>
+            <button class="icon-btn" title="Imprimir código de barras" onclick="imprimirEtiqueta('${p.id}')">🏷</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('') + '</tbody></table></div>';
+}
+
+function abrirVentanaInventario(){
+  abrirModal(`Inventario (${productos.length})`, `
+    <input id="modal-kx-buscar" placeholder="Buscar por nombre, tipo, marca o código..." oninput="filtrarVentanaInventario(this.value)" style="width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:9px 10px;border-radius:6px;font-size:14px;margin-bottom:14px">
+    <div id="modal-kx-tabla">${construirTablaInventario()}</div>
+  `);
+}
+
+function filtrarVentanaInventario(valor){
+  const el = document.getElementById('modal-kx-tabla');
+  if(el) el.innerHTML = construirTablaInventario(valor);
+}
+
+function construirTablaMovimientos(kardex){
+  if(kardex.length===0) return '<div class="empty">Sin movimientos registrados.</div>';
+  const etiquetaTipo = {entrada:'Entrada', salida:'Salida', ajuste:'Ajuste'};
+  const claseTipo = {entrada:'listo', salida:'pendiente', ajuste:'proceso'};
+  return '<div class="table-scroll" id="kx-mov-scroll"><table><thead><tr><th>Fecha</th><th>Producto</th><th>Tipo</th><th>Cant.</th><th>Stock</th><th>Motivo</th></tr></thead><tbody>' +
+    kardex.map(m=>`<tr>
+      <td data-label="Fecha" style="font-size:11px">${m.fecha}</td>
+      <td data-label="Producto">${m.productoNombre}</td>
+      <td data-label="Tipo"><span class="badge ${claseTipo[m.tipo]||'proceso'}">${etiquetaTipo[m.tipo]||m.tipo}</span></td>
+      <td data-label="Cantidad" style="font-weight:700">${m.cantidad>0?'+':''}${m.cantidad}</td>
+      <td data-label="Stock">${m.stockResultante}</td>
+      <td data-label="Motivo" style="font-size:12px;color:var(--muted)">${m.motivo||'-'}</td>
+    </tr>`).join('') + '</tbody></table></div>';
+}
+
+async function abrirVentanaMovimientos(){
+  const kardex = await loadData('kardex', []);
+  abrirModal(`Movimientos del Kardex (${kardex.length})`, construirTablaMovimientos(kardex));
+}
+
+async function renderKardex(){
+  // Resumen valorizado del inventario
+  const totalUnidades = productos.reduce((s,p)=> s + (p.stock||0), 0);
+  const valorTotal = productos.reduce((s,p)=> s + (p.stock||0) * p.precio, 0);
+  const elProductos = document.getElementById('kx-total-productos');
+  const elUnidades = document.getElementById('kx-total-unidades');
+  const elValor = document.getElementById('kx-valor-total');
+  if(elProductos) elProductos.textContent = productos.length;
+  if(elUnidades) elUnidades.textContent = totalUnidades;
+  if(elValor) elValor.textContent = 'S/ ' + valorTotal.toFixed(2);
+
+  // Resumen compacto de movimientos recientes
+  const movResumenEl = document.getElementById('kx-mov-resumen');
+  if(movResumenEl){
+    const kardex = await loadData('kardex', []);
+    if(kardex.length===0){
+      movResumenEl.innerHTML = '<div class="empty">Sin movimientos registrados.</div>';
+    } else {
+      const etiquetaTipo = {entrada:'Entrada', salida:'Salida', ajuste:'Ajuste'};
+      movResumenEl.innerHTML = kardex.slice(0,4).map(m=>`
+        <div class="linea-resumen">
+          <span>${m.productoNombre}</span>
+          <span style="color:var(--muted)">${etiquetaTipo[m.tipo]||m.tipo} · ${m.cantidad>0?'+':''}${m.cantidad}</span>
+        </div>
+      `).join('');
+    }
+  }
+}
+
+function exportarInventarioExcel(){
+  if(productos.length===0){ alert('No hay productos para exportar.'); return; }
+  if(typeof XLSX === 'undefined'){ alert('No se pudo cargar la librería de Excel. Verifica tu conexión a internet e intenta de nuevo.'); return; }
+  const filas = productos.map(p=>({
+    'Producto': p.nombre,
+    'Tipo': p.tipo || '',
+    'Marca': p.marca || '',
+    'Código de barras': p.codigoBarras || '',
+    'Stock': p.stock || 0,
+    'Precio unitario (S/)': p.precio,
+    'Valor total (S/)': (p.stock||0) * p.precio
+  }));
+  const hoja = XLSX.utils.json_to_sheet(filas);
+  hoja['!cols'] = [{wch:24},{wch:16},{wch:16},{wch:18},{wch:10},{wch:16},{wch:16}];
+  const libro = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(libro, hoja, 'Inventario');
+  XLSX.writeFile(libro, `inventario_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ---------- ESTADÍSTICAS E HISTORIAL DE VENTAS ----------
+let chartVentasDias = null;
+let chartTopProductos = null;
+
+async function renderEstadisticas(){
+  const ventas = await loadData('ventas', []);
+
+  const totalVentas = ventas.reduce((s,v)=>s+v.total,0);
+  const numVentas = ventas.length;
+  const ticketProm = numVentas>0 ? totalVentas/numVentas : 0;
+  const hoyStr = new Date().toLocaleDateString('es-PE');
+  const ventasHoy = ventas
+    .filter(v => (v.fecha||'').split(',')[0].trim() === hoyStr)
+    .reduce((s,v)=>s+v.total,0);
+
+  document.getElementById('est-ventas-total').textContent = 'S/ ' + totalVentas.toFixed(2);
+  document.getElementById('est-num-ventas').textContent = numVentas;
+  document.getElementById('est-ticket-promedio').textContent = 'S/ ' + ticketProm.toFixed(2);
+  document.getElementById('est-ventas-hoy').textContent = 'S/ ' + ventasHoy.toFixed(2);
+
+  // Ventas de los últimos 14 días
+  const dias = [];
+  const totalesPorDia = [];
+  for(let i=13; i>=0; i--){
+    const d = new Date();
+    d.setDate(d.getDate()-i);
+    dias.push(d.toLocaleDateString('es-PE', {day:'2-digit', month:'2-digit'}));
+    const fechaComparar = d.toLocaleDateString('es-PE');
+    const total = ventas
+      .filter(v => (v.fecha||'').split(',')[0].trim() === fechaComparar)
+      .reduce((s,v)=>s+v.total,0);
+    totalesPorDia.push(total);
+  }
+
+  if(typeof Chart !== 'undefined'){
+    const ctxDias = document.getElementById('chart-ventas-dias');
+    if(chartVentasDias) chartVentasDias.destroy();
+    chartVentasDias = new Chart(ctxDias, {
+      type: 'bar',
+      data: { labels: dias, datasets: [{ label: 'Ventas (S/)', data: totalesPorDia, backgroundColor: '#FF6A00' }] },
+      options: {
+        responsive: true,
+        plugins: { legend: { display:false } },
+        scales: {
+          x: { ticks:{color:'#8ea0a8'}, grid:{color:'#2e3a41'} },
+          y: { ticks:{color:'#8ea0a8'}, grid:{color:'#2e3a41'}, beginAtZero:true }
+        }
+      }
+    });
+
+    // Top 5 productos más vendidos (por ingresos)
+    const conteo = {};
+    ventas.forEach(v=>{
+      (v.items||[]).forEach(it=>{
+        if(!conteo[it.nombre]) conteo[it.nombre] = {cantidad:0, total:0};
+        conteo[it.nombre].cantidad += it.cantidad;
+        conteo[it.nombre].total += it.precio * it.cantidad;
+      });
+    });
+    const topArr = Object.entries(conteo)
+      .map(([nombre,d]) => ({nombre, ...d}))
+      .sort((a,b) => b.total - a.total)
+      .slice(0,5);
+
+    const ctxTop = document.getElementById('chart-top-productos');
+    if(chartTopProductos) chartTopProductos.destroy();
+    chartTopProductos = new Chart(ctxTop, {
+      type: 'bar',
+      data: { labels: topArr.map(t=>t.nombre), datasets: [{ label:'Ingresos (S/)', data: topArr.map(t=>t.total), backgroundColor:'#00D9B5' }] },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: { legend: { display:false } },
+        scales: {
+          x: { ticks:{color:'#8ea0a8'}, grid:{color:'#2e3a41'}, beginAtZero:true },
+          y: { ticks:{color:'#8ea0a8'}, grid:{color:'#2e3a41'} }
+        }
+      }
+    });
+  }
+
+  renderHistorialVentas(ventas);
+}
+
+function obtenerFiltrosVentas(){
+  return {
+    cliente: (document.getElementById('est-filtro-cliente')?.value || '').trim().toLowerCase(),
+    producto: (document.getElementById('est-filtro-producto')?.value || '').trim().toLowerCase(),
+    desde: document.getElementById('est-filtro-desde')?.value || '',
+    hasta: document.getElementById('est-filtro-hasta')?.value || ''
+  };
+}
+
+function filtrarVentas(ventas, filtros){
+  return ventas.filter(v => {
+    if(filtros.cliente && !((v.cliente||'').toLowerCase().includes(filtros.cliente) || v.id.toLowerCase().includes(filtros.cliente))) return false;
+    if(filtros.producto){
+      const tieneProducto = (v.items||[]).some(it => (it.nombre||'').toLowerCase().includes(filtros.producto));
+      if(!tieneProducto) return false;
+    }
+    if((filtros.desde || filtros.hasta)){
+      if(!v.fechaISO) return false; // ventas antiguas sin fecha exacta no se pueden ubicar en el rango
+      const fechaVenta = v.fechaISO.slice(0,10);
+      if(filtros.desde && fechaVenta < filtros.desde) return false;
+      if(filtros.hasta && fechaVenta > filtros.hasta) return false;
+    }
+    return true;
+  });
+}
+
+function limpiarFiltrosVentas(){
+  ['est-filtro-cliente','est-filtro-producto','est-filtro-desde','est-filtro-hasta'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  renderHistorialVentas();
+}
+
+async function renderHistorialVentas(ventasParam){
+  const el = document.getElementById('est-historial');
+  if(!el) return;
+  const ventas = ventasParam || await loadData('ventas', []);
+  const filtros = obtenerFiltrosVentas();
+  const filtradas = filtrarVentas(ventas, filtros);
+
+  if(ventas.length===0){ el.innerHTML = '<div class="empty">Sin ventas registradas.</div>'; return; }
+  if(filtradas.length===0){ el.innerHTML = '<div class="empty">Ninguna venta coincide con los filtros.</div>'; return; }
+
+  el.innerHTML = '<div class="table-scroll" id="est-hist-scroll"><table><thead><tr><th>N°</th><th>Fecha</th><th>Cliente</th><th>Ítems</th><th>Total</th><th>Acciones</th></tr></thead><tbody>' +
+    filtradas.map(v => `<tr>
+      <td data-label="N°">${v.id}</td>
+      <td data-label="Fecha" style="font-size:11px">${v.fecha}</td>
+      <td data-label="Cliente">${v.cliente || '-'}</td>
+      <td data-label="Ítems">${(v.items||[]).reduce((s,i)=>s+i.cantidad,0)}</td>
+      <td data-label="Total" style="font-weight:700">S/ ${v.total.toFixed(2)}</td>
+      <td data-label="" class="actions">
+        <button class="ghost" style="font-size:11px;padding:4px 8px" onclick="verDetalleVenta('${v.id}')">Ver</button>
+        <button class="ghost" style="font-size:11px;padding:4px 8px" onclick="reimprimirVenta('${v.id}')">Reimprimir</button>
+      </td>
+    </tr>`).join('') + '</tbody></table></div>';
+}
+
+async function verDetalleVenta(id){
+  const ventas = await loadData('ventas', []);
+  const v = ventas.find(x=>x.id===id);
+  if(!v) return;
+  const filas = (v.items||[]).map(it=>`<div class="line"><span>${it.cantidad} x ${it.nombre}</span><span>S/ ${(it.precio*it.cantidad).toFixed(2)}</span></div>`).join('');
+  abrirModal(`Venta ${v.id}`, `
+    <div style="font-size:13px;line-height:1.7">
+      <div><strong>Fecha:</strong> ${v.fecha}</div>
+      <div><strong>Cliente:</strong> ${v.cliente || '-'}</div>
+      ${v.docNumero ? `<div><strong>${(v.docTipo||'doc').toUpperCase()}:</strong> ${v.docNumero}</div>` : ''}
+      <hr style="border-color:var(--line);margin:10px 0">
+      ${filas}
+      <hr style="border-color:var(--line);margin:10px 0">
+      <div style="font-weight:800;font-size:15px;color:var(--accent)">Total: S/ ${v.total.toFixed(2)}</div>
+    </div>
+  `);
+}
+
+async function reimprimirVenta(id){
+  const ventas = await loadData('ventas', []);
+  const v = ventas.find(x=>x.id===id);
+  if(!v) return;
+  const filas = (v.items||[]).map(c=>`<div class="line"><span>${c.cantidad} x ${c.nombre}</span><span>S/ ${(c.precio*c.cantidad).toFixed(2)}</span></div>`).join('');
+  const html = `
+    <div class="ticket">
+      ${ticketHeader()}
+      <h3>BOLETA DE VENTA (REIMPRESIÓN)</h3>
+      <div class="center">${v.id}</div>
+      <div class="center">${v.fecha}</div>
+      <hr>
+      ${v.cliente?`<div class="line"><span>Cliente:</span><span>${v.cliente}</span></div>`:''}
+      ${v.docNumero?`<div class="line"><span>${(v.docTipo||'').toUpperCase()}:</span><span>${v.docNumero}</span></div>`:''}
+      ${(v.cliente||v.docNumero)?'<hr>':''}
+      ${filas}
+      <hr>
+      <div class="line tot"><span>TOTAL</span><span>S/ ${v.total.toFixed(2)}</span></div>
+      ${ticketFooter()}
+    </div>`;
+  imprimirTicket(html, 58);
+}
+
+function exportarVentasExcel(){
+  loadData('ventas', []).then(ventas=>{
+    if(ventas.length===0){ alert('No hay ventas para exportar.'); return; }
+    if(typeof XLSX === 'undefined'){ alert('No se pudo cargar la librería de Excel. Verifica tu conexión a internet e intenta de nuevo.'); return; }
+
+    const filtros = obtenerFiltrosVentas();
+    const filtradas = filtrarVentas(ventas, filtros);
+    if(filtradas.length===0){ alert('Ninguna venta coincide con los filtros aplicados.'); return; }
+
+    const filas = filtradas.map(v=>({
+      'N° Venta': v.id,
+      'Fecha': v.fecha,
+      'Cliente': v.cliente || '',
+      'Documento': v.docNumero ? `${(v.docTipo||'').toUpperCase()} ${v.docNumero}` : '',
+      'Productos': (v.items||[]).map(it=>`${it.cantidad}x ${it.nombre}`).join(', '),
+      'N° Ítems': (v.items||[]).reduce((s,i)=>s+i.cantidad,0),
+      'Total (S/)': v.total
+    }));
+    const hoja = XLSX.utils.json_to_sheet(filas);
+    hoja['!cols'] = [{wch:14},{wch:20},{wch:22},{wch:16},{wch:34},{wch:10},{wch:12}];
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, hoja, 'Ventas');
+    XLSX.writeFile(libro, `historial_ventas_${new Date().toISOString().slice(0,10)}.xlsx`);
+  });
+}
+
+function exportarKardexExcel(){
+  loadData('kardex', []).then(kardex=>{
+    if(kardex.length===0){ alert('No hay movimientos para exportar.'); return; }
+    if(typeof XLSX === 'undefined'){ alert('No se pudo cargar la librería de Excel. Verifica tu conexión a internet e intenta de nuevo.'); return; }
+    const filas = kardex.map(m=>({
+      'Fecha': m.fecha,
+      'Producto': m.productoNombre,
+      'Tipo': m.tipo==='entrada'?'Entrada':m.tipo==='salida'?'Salida':'Ajuste',
+      'Cantidad': m.cantidad,
+      'Stock resultante': m.stockResultante,
+      'Motivo': m.motivo || ''
+    }));
+    const hoja = XLSX.utils.json_to_sheet(filas);
+    hoja['!cols'] = [{wch:18},{wch:22},{wch:10},{wch:10},{wch:14},{wch:30}];
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, hoja, 'Kardex');
+    XLSX.writeFile(libro, `kardex_${new Date().toISOString().slice(0,10)}.xlsx`);
+  });
+}
+
+function agregarAlCarrito(id){
+  const p = productos.find(x=>x.id===id);
+  if(!p) return;
+  const existente = carrito.find(c=>c.id===id);
+  if(existente){ existente.cantidad++; }
+  else{ carrito.push({id:p.id, nombre:p.nombre, precio:p.precio, cantidad:1}); }
+  renderCarrito();
+}
+
+function cambiarCantidad(id, delta){
+  const item = carrito.find(c=>c.id===id);
+  if(!item) return;
+  item.cantidad += delta;
+  if(item.cantidad<=0){ carrito = carrito.filter(c=>c.id!==id); }
+  renderCarrito();
+}
+
+function renderCarrito(){
+  const el = document.getElementById('pv-carrito');
+  if(carrito.length===0){
+    el.innerHTML = '<div class="empty">Carrito vacío. Selecciona productos.</div>';
+    document.getElementById('pv-total').textContent = 'S/ 0.00';
+    return;
+  }
+  let total = 0;
+  el.innerHTML = carrito.map(c=>{
+    const sub = c.precio*c.cantidad;
+    total += sub;
+    return `<div class="cart-line">
+      <div style="flex:1">${c.nombre}<br><span style="color:var(--muted);font-size:12px">S/ ${c.precio.toFixed(2)} c/u</span></div>
+      <div class="qty-ctrl">
+        <button onclick="cambiarCantidad('${c.id}',-1)">−</button>
+        <span>${c.cantidad}</span>
+        <button onclick="cambiarCantidad('${c.id}',1)">+</button>
+      </div>
+      <div style="width:70px;text-align:right;font-weight:700">S/ ${sub.toFixed(2)}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('pv-total').textContent = 'S/ ' + total.toFixed(2);
+}
+
+async function cobrar(){
+  if(carrito.length===0){ alert('El carrito está vacío.'); return; }
+  const ancho = parseInt(document.getElementById('pv-ancho').value);
+  const total = carrito.reduce((s,c)=>s+c.precio*c.cantidad,0);
+  const fechaHora = new Date().toLocaleString('es-PE');
+  const ventaId = 'V-' + Date.now().toString().slice(-6);
+
+  const docTipo = document.getElementById('pv-doc-tipo').value;
+  const docNumero = document.getElementById('pv-doc-numero').value.trim();
+  const clienteNombre = document.getElementById('pv-cliente-nombre').value.trim();
+  const metodoPago = document.getElementById('pv-metodo-pago').value;
+
+  const ventas = await loadData('ventas', []);
+  ventas.unshift({id:ventaId, fecha:fechaHora, fechaISO:new Date().toISOString(), items:carrito, total, cliente:clienteNombre, docTipo, docNumero, metodoPago});
+  await saveData('ventas', ventas);
+  if(clienteNombre){ await upsertCliente({nombre: clienteNombre, docTipo, docNumero}); }
+  if(metodoPago==='efectivo'){ await registrarVentaEnCaja(total, ventaId); }
+
+  // Descontar stock y registrar la salida en el kardex por cada producto vendido
+  for(const item of carrito){
+    const p = productos.find(x=>x.id===item.id);
+    if(p){
+      p.stock = (p.stock||0) - item.cantidad;
+      await registrarMovimiento(p.id, p.nombre, 'salida', -item.cantidad, p.stock, `Venta ${ventaId}`);
+    }
+  }
+  await saveData('productos', productos);
+  renderCatalogo();
+  renderKardex();
+
+  const filas = carrito.map(c=>`
+    <div class="line"><span>${c.cantidad} x ${c.nombre}</span><span>S/ ${(c.precio*c.cantidad).toFixed(2)}</span></div>
+  `).join('');
+
+  const html = `
+    <div class="ticket">
+      ${ticketHeader()}
+      <h3>BOLETA DE VENTA</h3>
+      <div class="center">${ventaId}</div>
+      <div class="center">${fechaHora}</div>
+      <hr>
+      ${clienteNombre?`<div class="line"><span>Cliente:</span><span>${clienteNombre}</span></div>`:''}
+      ${docNumero?`<div class="line"><span>${docTipo.toUpperCase()}:</span><span>${docNumero}</span></div>`:''}
+      ${(clienteNombre||docNumero)?'<hr>':''}
+      ${filas}
+      <hr>
+      <div class="line tot"><span>TOTAL</span><span>S/ ${total.toFixed(2)}</span></div>
+      <div class="center" style="margin-top:6px">¡Gracias por su compra!</div>
+      ${ticketFooter()}
+    </div>`;
+  imprimirTicket(html, ancho);
+
+  carrito = [];
+  renderCarrito();
+  document.getElementById('pv-doc-numero').value = '';
+  document.getElementById('pv-cliente-nombre').value = '';
+  document.getElementById('pv-metodo-pago').value = 'efectivo';
+}
+
+// ---------- Impresión ----------
+function imprimirTicket(html, anchoMM){
+  const area = document.getElementById('printArea');
+  area.innerHTML = html;
+  area.style.width = anchoMM + 'mm';
+  dispararImpresion(anchoMM + 'mm auto');
+}
+
+function imprimirTicketA4(html){
+  const area = document.getElementById('printArea');
+  area.innerHTML = html;
+  area.style.width = '210mm';
+  dispararImpresion('210mm 297mm');
+}
+
+// Le indica al navegador/impresora el tamaño real de papel a usar (clave para
+// que las impresoras térmicas de ticket no impriman en tamaño Carta/A4 por defecto)
+function fijarTamanoPaginaImpresion(sizeCSS){
+  let estilo = document.getElementById('print-page-size');
+  if(!estilo){
+    estilo = document.createElement('style');
+    estilo.id = 'print-page-size';
+    document.head.appendChild(estilo);
+  }
+  estilo.textContent = `@media print { @page { size: ${sizeCSS}; margin: 0; } }`;
+}
+
+// ---------- Disparo de impresión compatible con móviles ----------
+// En computadoras, window.print() detiene la ejecución hasta cerrar el diálogo,
+// así que un setTimeout corto para "limpiar" después funciona bien. En muchos
+// navegadores móviles (Android/iOS) window.print() NO bloquea de esa forma: abre
+// la hoja de compartir/imprimir del sistema operativo y sigue ejecutando el resto
+// del script de inmediato. Con un temporizador fijo de 300ms, la clase "printing"
+// se quitaba antes de que el sistema operativo terminara de capturar la página,
+// así que a veces se imprimía toda la app en vez de solo el ticket. Se reemplaza
+// por el evento "afterprint" (se dispara cuando el usuario cierra el diálogo,
+// tanto en escritorio como en móvil) más un margen de seguridad más largo por si
+// el navegador no lo dispara.
+let temporizadorImpresionRespaldo = null;
+
+function dispararImpresion(sizeCSS){
+  fijarTamanoPaginaImpresion(sizeCSS);
+  document.body.classList.add('printing');
+  // Pequeña pausa para que el navegador termine de acomodar el contenido fuera
+  // de pantalla (incluyendo códigos de barra) antes de abrir el diálogo — ayuda
+  // especialmente en navegadores móviles, que son más lentos para esto.
+  setTimeout(()=>{ window.print(); }, 80);
+
+  clearTimeout(temporizadorImpresionRespaldo);
+  temporizadorImpresionRespaldo = setTimeout(()=>{
+    document.body.classList.remove('printing');
+  }, 10000);
+}
+
+window.addEventListener('afterprint', ()=>{
+  document.body.classList.remove('printing');
+  clearTimeout(temporizadorImpresionRespaldo);
+});
+</script>
+
+</body>
+</html>
